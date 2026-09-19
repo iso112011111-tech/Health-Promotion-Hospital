@@ -3,36 +3,93 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>คิววันนี้ · เจ้าหน้าที่ รพ.สต.บ้านหนองครกใต้</title>
+<title>คิวรับบริการ · เจ้าหน้าที่ รพ.สต.บ้านหนองครกใต้</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Noto+Serif+Thai:wght@600;700&display=swap">
 <link rel="stylesheet" href="../assets/theme.css">
 <style>
-.app{max-width:760px}
-.bar{display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.bar input[type=date]{padding:7px 10px;border-radius:9px;border:1.5px solid var(--line);
+.app{max-width:820px}
+.datebar{display:flex;gap:8px;align-items:center;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.datebar input[type=date]{padding:7px 10px;border-radius:9px;border:1.5px solid var(--line);
   background:var(--card);color:var(--ink);font:inherit;font-size:14px}
-.bar .sp{flex:1}
-.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 16px 4px}
-.tile{background:var(--card2);border-radius:11px;padding:10px 6px;text-align:center}
-.tile b{display:block;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
-.tile small{font-size:10.5px;color:var(--ink3)}
-.filters{display:flex;gap:7px;padding:12px 16px}
+.datebar .sp{flex:1}
+.datebar .stamp{font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums}
+
+/* แถบแจ้งเตือน */
+.alert{display:flex;align-items:center;gap:11px;padding:11px 16px;background:var(--warnsoft);
+  border-bottom:1px solid var(--line)}
+.alert .bell{font-size:17px;flex:0 0 auto}
+.alert b{font-size:13.5px;font-weight:600;color:var(--warn);display:block;line-height:1.35}
+.alert small{font-size:11.5px;color:var(--ink2);display:block}
+.alert button{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:600;padding:6px 13px;
+  border-radius:9px;background:var(--warn);color:#fff}
+
+/* แท็บ */
+.tabs{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;position:relative;font-size:13.5px;font-weight:600;color:var(--ink3);
+  padding:12px 12px 10px;border-bottom:2.5px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--brand)}
+.tabs .badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;
+  border-radius:999px;background:var(--crit);color:#fff;font-size:10.5px;font-weight:700;margin-left:5px;
+  vertical-align:middle;font-variant-numeric:tabular-nums}
+
+.filters{display:flex;gap:7px;padding:12px 16px 4px;flex-wrap:wrap}
 .filters button{font-size:12.5px;font-weight:600;padding:5px 13px;border-radius:999px;background:var(--sunk);color:var(--ink3)}
 .filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
-.qrow{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-top:1px solid var(--line)}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 16px 6px}
+.tile{background:var(--card2);border-radius:11px;padding:10px 6px;text-align:center}
+.tile b{display:block;font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile small{font-size:10.5px;color:var(--ink3)}
+.tile.hi{background:var(--brandsoft)} .tile.hi b{color:var(--brand2)}
+
+/* หัวหมวด */
+.gh{display:flex;align-items:center;gap:9px;padding:15px 16px 7px;background:var(--paper);
+  position:sticky;top:0;z-index:2;border-top:1px solid var(--line)}
+.gh .tag{font-family:"Noto Serif Thai",serif;font-weight:700;color:var(--acc);
+  background:var(--accsoft);width:24px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:13px}
+.gh b{font-size:13.5px;font-weight:600}
+.gh .n{margin-left:auto;font-size:11.5px;color:var(--ink3)}
+
+/* แถวคิว */
+.qrow{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-top:1px solid var(--line);background:var(--card)}
 .qrow .time{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums;width:46px;flex:0 0 auto;padding-top:2px}
 .qrow .code{font-family:"Noto Serif Thai",serif;font-weight:700;font-size:14px;color:var(--acc);width:48px;flex:0 0 auto;padding-top:1px}
 .qrow .who{flex:1;min-width:0}
 .qrow .who b{display:block;font-size:14.5px;font-weight:600;line-height:1.35}
 .qrow .who small{font-size:11.5px;color:var(--ink3);display:block}
-.qrow .who .memo{font-size:11.5px;color:var(--warn);background:var(--warnsoft);
-  padding:3px 8px;border-radius:7px;display:inline-block;margin-top:4px}
-.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.qrow .memo{font-size:11.5px;color:var(--warn);background:var(--warnsoft);
+  padding:3px 9px;border-radius:7px;display:inline-block;margin-top:5px}
+.qrow.isnew{background:var(--warnsoft)}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
 .acts button{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:8px;border:1.5px solid var(--line);color:var(--ink2)}
 .acts button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
-.login{max-width:340px;margin:0 auto;padding-top:14vh}
+.acts button:disabled{opacity:.5}
+
+/* ตาราง */
+.tw{overflow-x:auto;padding:0 16px 8px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:11px;font-weight:700;color:var(--ink3);border-bottom:1.5px solid var(--line)}
+tbody td{font-variant-numeric:tabular-nums}
+tbody tr:hover{background:var(--card2)}
+tfoot td{font-weight:700;border-top:1.5px solid var(--line);border-bottom:0}
+td.zero{color:var(--ink3)}
+
+.card{margin:14px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);overflow:hidden}
+.card .ch{display:flex;align-items:center;gap:9px;padding:12px 14px;background:var(--accsoft)}
+.card .ch b{font-size:14px;font-weight:600;color:var(--acc)}
+.card .ch .n{margin-left:auto;font-size:19px;font-weight:700;color:var(--acc);font-variant-numeric:tabular-nums}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 14px;font-size:13px}
+.kv span{color:var(--ink2)} .kv b{font-weight:600;font-variant-numeric:tabular-nums}
+.kv.sub{font-size:12.5px;color:var(--ink3)} .kv.sub span{color:var(--ink3)}
+.sechead{padding:16px 16px 6px;font-size:11.5px;font-weight:700;letter-spacing:.06em;color:var(--ink3)}
+.login{max-width:340px;margin:0 auto;padding-top:12vh}
+.soundbtn{font-size:16px;padding:4px 8px;border-radius:8px}
+.soundbtn[aria-pressed="false"]{opacity:.35}
 </style>
 </head>
 <body>
@@ -41,6 +98,7 @@
   <div class="topbar">
     <div class="ttl">คิวรับบริการ<span id="orgsub"></span></div>
     <div style="flex:1"></div>
+    <button class="soundbtn" id="sound" aria-pressed="true" title="เสียงเตือนเมื่อมีนัดใหม่" hidden>🔔</button>
     <button class="textbtn" id="logout" hidden>ออกจากระบบ</button>
   </div>
 
@@ -49,49 +107,62 @@
     <div class="login">
       <h2 class="qhead">สำหรับเจ้าหน้าที่</h2>
       <p class="qsub">กรอกรหัสผ่านที่ตั้งไว้ใน Script Properties</p>
-      <div class="field"><label for="key">รหัสผ่านเจ้าหน้าที่</label>
+      <div class="field" id="w-key"><label for="key">รหัสผ่านเจ้าหน้าที่</label>
         <input id="key" type="password" autocomplete="current-password"><p class="err" hidden></p></div>
       <button class="cta" id="btnlogin">เข้าสู่ระบบ</button>
     </div>
   </div>
 
-  <!-- รายการคิว -->
+  <!-- หน้าหลัก -->
   <div id="main" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
-    <div class="bar">
+
+    <div class="alert" id="alert" hidden>
+      <span class="bell">🔔</span>
+      <span><b id="alerttxt"></b><small id="alertsub"></small></span>
+      <button id="alertgo">ดูรายการ</button>
+    </div>
+
+    <div class="datebar">
       <input type="date" id="date">
       <button class="textbtn" id="todaybtn">วันนี้</button>
       <div class="sp"></div>
+      <span class="stamp" id="stamp"></span>
       <button class="textbtn" id="refresh">รีเฟรช</button>
     </div>
-    <div class="tiles">
-      <div class="tile"><b id="t-all">–</b><small>จองแล้ว</small></div>
-      <div class="tile"><b id="t-in">–</b><small>เช็คอิน</small></div>
-      <div class="tile"><b id="t-wait">–</b><small>รอเรียก</small></div>
-      <div class="tile"><b id="t-no">–</b><small>ไม่มา</small></div>
+
+    <div class="tabs" id="tabs">
+      <button data-t="now"  aria-selected="true">คิวรับบริการ</button>
+      <button data-t="up"   aria-selected="false">นัดล่วงหน้า<span class="badge" id="badge" hidden>0</span></button>
+      <button data-t="done" aria-selected="false">เสร็จสิ้น</button>
+      <button data-t="sum"  aria-selected="false">สรุปยอด</button>
     </div>
-    <div class="filters" id="filters">
-      <button data-f="all" aria-pressed="true">ทั้งหมด</button>
-      <button data-f="tm" aria-pressed="false">แผนไทย</button>
-      <button data-f="dn" aria-pressed="false">ทันตกรรม</button>
-    </div>
-    <div class="body" style="padding:0" id="list"></div>
+
+    <div class="body" style="padding:0" id="pane"></div>
   </div>
 </div>
 
 <script src="../config.js"></script>
+<script src="../assets/date-th.js"></script>
 <script>
 (function () {
 'use strict';
 var C = window.APP_CONFIG, D = C.DEPTS;
 var $ = function (id) { return document.getElementById(id); };
-var KEYNAME = 'nkt_staff_key';
-var st = { key: '', date: '', filter: 'all', items: [] };
+var K_KEY = 'nkt_staff_key', K_SEEN = 'nkt_seen_upcoming', K_SND = 'nkt_sound';
+var st = { key:'', date: bkkNow().date, tab:'now', filter:'all',
+           items:[], upcoming:[], seen:{}, sound:true, first:true, timer:null };
 
 $('orgsub').textContent = C.ORG;
-function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
-st.date = ymd(new Date());
 $('date').value = st.date;
 
+function ls(k, v){
+  try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); }
+  catch (e) { return null; }
+}
+try { st.seen = JSON.parse(ls(K_SEEN) || '{}') || {}; } catch (e) { st.seen = {}; }
+st.sound = ls(K_SND) !== '0';
+
+/* ---------------- API ---------------- */
 function api(p){
   p.key = st.key;
   if (C.DEMO) return demo(p);
@@ -99,113 +170,367 @@ function api(p){
     .then(function(r){ return r.json(); })
     .then(function(j){ if (!j.ok) throw new Error(j.error || 'ระบบขัดข้อง'); return j; });
 }
+
+/* ---------------- ข้อมูลตัวอย่างสำหรับโหมด DEMO ---------------- */
+var T = bkkNow().date;
 var DEMO_ROWS = [
-  { id:'1', dept:'tm', slot:'09:00–10:00', queueNo:'ท-001', name:'บุญมี ทองใบ', service:'นวดไทย', tel:'0812345678', right:'บัตรทอง (UC)', note:'', status:'checkin' },
-  { id:'2', dept:'dn', slot:'09:00–10:00', queueNo:'ฟ-001', name:'ณัฐพล ศรีมงคล', service:'ขูดหินปูน', tel:'0823456789', right:'ข้าราชการ', note:'', status:'checkin' },
-  { id:'3', dept:'tm', slot:'10:00–11:00', queueNo:'ท-002', name:'สมหญิง ศรีสะอาด', service:'พอกเข่า', tel:'0834567890', right:'บัตรทอง (UC)', note:'ปวดเข่าซ้ายมา 2 สัปดาห์', status:'booked' },
-  { id:'4', dept:'dn', slot:'10:00–11:00', queueNo:'ฟ-002', name:'กนกวรรณ ใจดี', service:'อุดฟัน', tel:'0845678901', right:'ประกันสังคม', note:'', status:'booked' },
-  { id:'5', dept:'tm', slot:'10:00–11:00', queueNo:'ท-003', name:'ประยูร แก้วมณี', service:'ประคบสมุนไพร', tel:'0856789012', right:'บัตรทอง (UC)', note:'', status:'noshow' },
-  { id:'6', dept:'tm', slot:'11:00–12:00', queueNo:'ท-004', name:'วิไล พันธ์ดี', service:'อบสมุนไพร', tel:'0867890123', right:'ชำระเงินเอง', note:'', status:'booked' },
-  { id:'7', dept:'dn', slot:'11:00–12:00', queueNo:'ฟ-003', name:'ธีรศักดิ์ นามวงศ์', service:'ถอนฟัน', tel:'0878901234', right:'บัตรทอง (UC)', note:'แพ้ยาเพนนิซิลลิน', status:'booked' },
-  { id:'8', dept:'dn', slot:'14:00–15:00', queueNo:'ฟ-004', name:'ด.ช.ภูมิ รักเรียน', service:'เคลือบฟลูออไรด์', tel:'0889012345', right:'บัตรทอง (UC)', note:'', status:'booked' },
-  { id:'9', dept:'tm', slot:'15:00–16:00', queueNo:'ท-005', name:'อำนวย ชัยสิทธิ์', service:'ติดตามผลการรักษา', tel:'0890123456', right:'บัตรทอง (UC)', note:'', status:'booked' }
+  { id:'1', date:T, dept:'tm', slot:'09:00–10:00', queueNo:'ท-001', name:'บุญมี ทองใบ', service:'นวดไทย', tel:'0812345678', right:'บัตรทอง (UC)', note:'', status:'done' },
+  { id:'2', date:T, dept:'dn', slot:'09:00–10:00', queueNo:'ฟ-001', name:'ณัฐพล ศรีมงคล', service:'ขูดหินปูน', tel:'0823456789', right:'ข้าราชการ', note:'', status:'done' },
+  { id:'3', date:T, dept:'tm', slot:'10:00–11:00', queueNo:'ท-002', name:'สมหญิง ศรีสะอาด', service:'พอกเข่า', tel:'0834567890', right:'บัตรทอง (UC)', note:'ปวดเข่าซ้ายมา 2 สัปดาห์', status:'checkin' },
+  { id:'4', date:T, dept:'dn', slot:'10:00–11:00', queueNo:'ฟ-002', name:'กนกวรรณ ใจดี', service:'อุดฟัน', tel:'0845678901', right:'ประกันสังคม', note:'', status:'booked' },
+  { id:'5', date:T, dept:'tm', slot:'10:00–11:00', queueNo:'ท-003', name:'ประยูร แก้วมณี', service:'ประคบสมุนไพร', tel:'0856789012', right:'บัตรทอง (UC)', note:'', status:'noshow' },
+  { id:'6', date:T, dept:'tm', slot:'11:00–12:00', queueNo:'ท-004', name:'วิไล พันธ์ดี', service:'อบสมุนไพร', tel:'0867890123', right:'ชำระเงินเอง', note:'', status:'booked' },
+  { id:'7', date:T, dept:'dn', slot:'11:00–12:00', queueNo:'ฟ-003', name:'ธีรศักดิ์ นามวงศ์', service:'ถอนฟัน', tel:'0878901234', right:'บัตรทอง (UC)', note:'แพ้ยาเพนนิซิลลิน', status:'booked' },
+  { id:'8', date:T, dept:'tm', slot:'13:30–14:30', queueNo:'ท-005', name:'สุนีย์ บุญเรือง', service:'รับยาสมุนไพร', tel:'0889012345', right:'บัตรทอง (UC)', note:'', status:'booked' },
+  { id:'9', date:T, dept:'dn', slot:'15:00–16:00', queueNo:'ฟ-004', name:'ด.ช.ภูมิ รักเรียน', service:'เคลือบฟลูออไรด์', tel:'0890123456', right:'บัตรทอง (UC)', note:'มากับผู้ปกครอง', status:'cancelled' }
+];
+var DEMO_UP = [
+  { id:'u1', date:addDays(T,1), dept:'dn', slot:'09:00–10:00', queueNo:'ฟ-001', name:'อำนวย ชัยสิทธิ์', service:'ตรวจสุขภาพช่องปาก', tel:'0812223344', right:'บัตรทอง (UC)', note:'', status:'booked' },
+  { id:'u2', date:addDays(T,1), dept:'tm', slot:'10:00–11:00', queueNo:'ท-001', name:'จันทร์เพ็ญ สุขใจ', service:'นวดไทย', tel:'0823334455', right:'บัตรทอง (UC)', note:'ปวดบ่าและคอ', status:'booked' },
+  { id:'u3', date:addDays(T,3), dept:'tm', slot:'09:00–10:00', queueNo:'ท-001', name:'สมพร มีทรัพย์', service:'พอกเข่า', tel:'0834445566', right:'ข้าราชการ', note:'', status:'booked' },
+  { id:'u4', date:addDays(T,5), dept:'dn', slot:'14:00–15:00', queueNo:'ฟ-001', name:'ด.ญ.พิมพ์ ใจงาม', service:'เคลือบฟลูออไรด์', tel:'0845556677', right:'บัตรทอง (UC)', note:'', status:'booked' }
 ];
 function demo(p){
   return new Promise(function(res){ setTimeout(function(){
-    if (p.action === 'queue') res({ ok:true, date:p.date, items: DEMO_ROWS.slice() });
-    else if (p.action === 'status'){
-      DEMO_ROWS.forEach(function(r){ if (r.id === p.id) r.status = p.status; }); res({ ok:true });
-    } else res({ ok:true });
-  }, 200); });
+    if (p.action === 'queue')
+      res({ ok:true, date:p.date, items: DEMO_ROWS.filter(function(r){ return r.date === p.date; }) });
+    else if (p.action === 'upcoming') res({ ok:true, items: DEMO_UP.slice(), today:T });
+    else if (p.action === 'range'){
+      var days = {};
+      for (var i=0;i<14;i++){
+        var k = addDays(p.to, -i); if (k < p.from) break;
+        if (dow(k) === 0 || dow(k) === 6) continue;
+        var h = 0; for (var j=0;j<k.length;j++) h = (h*31 + k.charCodeAt(j)) >>> 0;
+        days[k] = {
+          tm:{ total:4+h%5, booked:0, checkin:0, done:3+h%4, noshow:h%2, cancelled:(h>>2)%2 },
+          dn:{ total:2+(h>>3)%4, booked:0, checkin:0, done:2+(h>>3)%3, noshow:(h>>4)%2, cancelled:0 }
+        };
+      }
+      res({ ok:true, from:p.from, to:p.to, days:days });
+    }
+    else if (p.action === 'status'){ DEMO_ROWS.forEach(function(r){ if (r.id === p.id) r.status = p.status; }); res({ ok:true }); }
+    else res({ ok:true });
+  }, 180); });
 }
 
-/* เข้าสู่ระบบ */
-try { st.key = localStorage.getItem(KEYNAME) || ''; } catch (e) {}
-if (C.DEMO) { st.key = 'demo'; }
-function showMain(on){
-  $('login').hidden = on; $('main').hidden = !on; $('logout').hidden = !on;
-  if (on) load();
-}
+/* ---------------- เข้าสู่ระบบ ---------------- */
+st.key = ls(K_KEY) || '';
+if (C.DEMO) st.key = 'demo';
+
 $('btnlogin').onclick = function(){
-  var k = $('key').value.trim();
-  if (!k) return;
-  st.key = k;
-  api({ action:'queue', date: st.date, dept:'all' })
-    .then(function(j){ try { localStorage.setItem(KEYNAME, k); } catch (e) {} render(j.items); showMain(true); })
-    .catch(function(e){ var p = $('login').querySelector('.err'); p.textContent = e.message; p.hidden = false; });
+  var k = $('key').value.trim(); if (!k) return;
+  st.key = k; this.disabled = true; this.textContent = 'กำลังตรวจสอบ…';
+  var btn = this;
+  api({ action:'queue', date: st.date })
+    .then(function(){ ls(K_KEY, k); enter(); })
+    .catch(function(e){
+      var w = $('w-key'), p = w.querySelector('.err');
+      w.classList.add('bad'); p.textContent = e.message; p.hidden = false;
+      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+    });
 };
 $('key').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('btnlogin').click(); });
-$('logout').onclick = function(){ try { localStorage.removeItem(KEYNAME); } catch (e) {} location.reload(); };
+$('logout').onclick = function(){ try { localStorage.removeItem(K_KEY); } catch (e) {} location.reload(); };
 
-/* รายการ */
-$('date').onchange = function(){ st.date = this.value; load(); };
-$('todaybtn').onclick = function(){ st.date = ymd(new Date()); $('date').value = st.date; load(); };
-$('refresh').onclick = function(){ load(); };
-$('filters').onclick = function(e){
-  var b = e.target.closest('button'); if (!b) return;
-  st.filter = b.getAttribute('data-f');
-  Array.prototype.forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-  render(st.items);
+function enter(){
+  $('login').hidden = true; $('main').hidden = false;
+  $('logout').hidden = false; $('sound').hidden = false;
+  $('sound').setAttribute('aria-pressed', st.sound ? 'true' : 'false');
+  loadAll();
+  st.timer = setInterval(function(){ if (!document.hidden) loadAll(true); }, 60000);
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) loadAll(true); });
+}
+$('sound').onclick = function(){
+  st.sound = !st.sound; ls(K_SND, st.sound ? '1' : '0');
+  this.setAttribute('aria-pressed', st.sound ? 'true' : 'false');
 };
-
-function load(){
-  $('list').innerHTML = '<div class="empty">กำลังโหลด…</div>';
-  api({ action:'queue', date: st.date, dept:'all' })
-    .then(function(j){ render(j.items); })
-    .catch(function(e){ $('list').innerHTML = '<div class="empty">โหลดไม่สำเร็จ · ' + e.message + '</div>'; });
+function beep(){
+  if (!st.sound) return;
+  try {
+    var a = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1180].forEach(function(f, i){
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, a.currentTime + i*0.16);
+      g.gain.exponentialRampToValueAtTime(0.14, a.currentTime + i*0.16 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + i*0.16 + 0.15);
+      o.connect(g); g.connect(a.destination);
+      o.start(a.currentTime + i*0.16); o.stop(a.currentTime + i*0.16 + 0.16);
+    });
+  } catch (e) {}
 }
 
+/* ---------------- โหลดข้อมูล ---------------- */
+function loadAll(quiet){
+  if (!quiet) $('pane').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  Promise.all([
+    api({ action:'queue', date: st.date }).catch(function(){ return { items: [] }; }),
+    api({ action:'upcoming' }).catch(function(){ return { items: [] }; })
+  ]).then(function(r){
+    st.items = r[0].items || [];
+    var before = newOnes(st.upcoming).length;
+    st.upcoming = r[1].items || [];
+    var after = newOnes(st.upcoming).length;
+    if (!st.first && after > before) beep();
+    st.first = false;
+    var n = bkkNow();
+    $('stamp').textContent = 'อัปเดต ' + ('0'+Math.floor(n.min/60)).slice(-2) + ':' + ('0'+(n.min%60)).slice(-2);
+    renderAlert(); render();
+  });
+}
+function newOnes(list){ return (list||[]).filter(function(r){ return !st.seen[r.id]; }); }
+function markSeen(){
+  st.upcoming.forEach(function(r){ st.seen[r.id] = 1; });
+  var keep = {}; st.upcoming.forEach(function(r){ keep[r.id] = 1; });
+  st.seen = keep; ls(K_SEEN, JSON.stringify(keep));
+}
+
+$('date').onchange  = function(){ st.date = this.value; loadAll(); };
+$('todaybtn').onclick = function(){ st.date = bkkNow().date; $('date').value = st.date; loadAll(); };
+$('refresh').onclick  = function(){ loadAll(); };
+$('alertgo').onclick  = function(){ setTab('up'); };
+$('tabs').onclick = function(e){ var b = e.target.closest('button'); if (b) setTab(b.getAttribute('data-t')); };
+function setTab(t){
+  st.tab = t;
+  Array.prototype.forEach.call($('tabs').children, function(b){
+    b.setAttribute('aria-selected', b.getAttribute('data-t') === t ? 'true' : 'false');
+  });
+  render();
+  if (t === 'up'){ setTimeout(function(){ markSeen(); renderAlert(); renderBadge(); }, 1200); }
+}
+
+/* ---------------- แจ้งเตือน ---------------- */
+function renderBadge(){
+  var n = newOnes(st.upcoming).length;
+  $('badge').hidden = n === 0; $('badge').textContent = n;
+}
+function renderAlert(){
+  renderBadge();
+  var fresh = newOnes(st.upcoming);
+  if (!fresh.length){ $('alert').hidden = true; return; }
+  $('alert').hidden = false;
+  $('alerttxt').textContent = 'มีนัดจองล่วงหน้าใหม่ ' + fresh.length + ' รายการ';
+  var soonest = fresh.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; })[0];
+  $('alertsub').textContent = 'ใกล้ที่สุด · ' + thUntil(soonest.date) + ' ' + thDate(soonest.date) +
+    ' · ' + (D[soonest.dept] ? D[soonest.dept].name : soonest.dept) + ' · ' + soonest.name;
+}
+
+/* ---------------- แสดงผล ---------------- */
 var LABEL = { booked:['รอเรียก','wait'], checkin:['เช็คอินแล้ว','ok'],
               done:['เสร็จสิ้น','mute'], noshow:['ไม่มาตามนัด','bad'], cancelled:['ยกเลิก','mute'] };
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){
+  return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+function el(html){ var d = document.createElement('div'); d.innerHTML = html; return d.firstElementChild; }
 
-function render(items){
-  st.items = items || [];
-  var show = st.items.filter(function(r){ return st.filter === 'all' || r.dept === st.filter; });
-  var live = st.items.filter(function(r){ return r.status !== 'cancelled'; });
-  $('t-all').textContent  = live.length;
-  $('t-in').textContent   = live.filter(function(r){ return r.status === 'checkin' || r.status === 'done'; }).length;
-  $('t-wait').textContent = live.filter(function(r){ return r.status === 'booked'; }).length;
-  $('t-no').textContent   = live.filter(function(r){ return r.status === 'noshow'; }).length;
-
-  var L = $('list'); L.innerHTML = '';
-  if (!show.length){ L.innerHTML = '<div class="empty">ไม่มีคิวในวันที่เลือก</div>'; return; }
-  show.forEach(function(r){
-    var d = D[r.dept] || { name: r.dept };
-    var lab = LABEL[r.status] || ['-', 'mute'];
-    var el = document.createElement('div');
-    el.className = 'qrow'; el.setAttribute('data-dept', r.dept);
-    el.innerHTML =
-      '<span class="time">' + r.slot.split('–')[0] + '</span>' +
-      '<span class="code">' + r.queueNo + '</span>' +
-      '<span class="who"><b>' + r.name + ' <span class="chip ' + lab[1] + '">' + lab[0] + '</span></b>' +
-      '<small>' + d.name + ' · ' + r.service + '</small>' +
-      '<small>' + (r.tel || '') + (r.right ? ' · ' + r.right : '') + '</small>' +
-      (r.note ? '<span class="memo">' + r.note + '</span>' : '') +
+function qrow(r, opts){
+  opts = opts || {};
+  var d = D[r.dept] || { name: r.dept }, lab = LABEL[r.status] || ['-','mute'];
+  var e = el('<div class="qrow"></div>');
+  e.setAttribute('data-dept', r.dept);
+  if (opts.isNew) e.classList.add('isnew');
+  e.innerHTML =
+    '<span class="time">' + esc(opts.showDate ? thShort(r.date) : r.slot.split('–')[0]) + '</span>' +
+    '<span class="code">' + esc(r.queueNo) + '</span>' +
+    '<span class="who"><b>' + esc(r.name) +
+      (opts.isNew ? ' <span class="chip bad">ใหม่</span>' : '') +
+      ' <span class="chip ' + lab[1] + '">' + lab[0] + '</span></b>' +
+      '<small>' + esc(d.name) + ' · ' + esc(r.service) + '</small>' +
+      '<small>' + esc(r.tel || '') + (r.right ? ' · ' + esc(r.right) : '') +
+        (opts.showDate ? ' · ' + esc(r.slot) + ' น.' : '') + '</small>' +
+      (r.note ? '<span class="memo">' + esc(r.note) + '</span>' : '') +
       '<span class="acts"></span></span>';
-    var acts = el.querySelector('.acts');
-    function add(txt, fn, pri){
-      var b = document.createElement('button'); b.textContent = txt;
-      if (pri) b.className = 'pri';
-      b.onclick = function(){ b.disabled = true; fn().then(load).catch(function(e){ alert(e.message); b.disabled = false; }); };
-      acts.appendChild(b);
-    }
+  var acts = e.querySelector('.acts');
+  function add(txt, status, pri){
+    var b = document.createElement('button');
+    b.textContent = txt; if (pri) b.className = 'pri';
+    b.onclick = function(){
+      b.disabled = true;
+      var call = status === 'call' ? api({ action:'call', id:r.id })
+                                   : api({ action:'status', id:r.id, status:status });
+      call.then(function(){ loadAll(true); })
+          .catch(function(e2){ alert(e2.message); b.disabled = false; });
+    };
+    acts.appendChild(b);
+  }
+  if (opts.actions !== false){
     if (r.status === 'booked'){
-      add('เรียกคิว', function(){ return api({ action:'call', id:r.id }); }, true);
-      add('เช็คอิน',  function(){ return api({ action:'status', id:r.id, status:'checkin' }); });
-      add('ไม่มา',    function(){ return api({ action:'status', id:r.id, status:'noshow' }); });
+      if (!opts.showDate) add('เรียกคิว', 'call', true);
+      add('เช็คอิน', 'checkin'); add('ไม่มา', 'noshow');
     } else if (r.status === 'checkin'){
-      add('เสร็จสิ้น', function(){ return api({ action:'status', id:r.id, status:'done' }); }, true);
-    } else if (r.status === 'noshow' || r.status === 'done'){
-      add('ย้อนกลับเป็นรอเรียก', function(){ return api({ action:'status', id:r.id, status:'booked' }); });
+      add('เสร็จสิ้น', 'done', true); add('ไม่มา', 'noshow');
+    } else if (r.status === 'done' || r.status === 'noshow'){
+      add('ย้อนกลับเป็นรอเรียก', 'booked');
     }
-    L.appendChild(el);
+  }
+  return e;
+}
+function groupHead(tag, title, n){
+  return el('<div class="gh"' + (tag.dept ? ' data-dept="' + tag.dept + '"' : '') + '>' +
+    (tag.tag ? '<span class="tag">' + esc(tag.tag) + '</span>' : '') +
+    '<b>' + esc(title) + '</b><span class="n">' + n + ' รายการ</span></div>');
+}
+
+function render(){
+  var P = $('pane'); P.innerHTML = '';
+  if (st.tab === 'now')  return renderNow(P);
+  if (st.tab === 'up')   return renderUp(P);
+  if (st.tab === 'done') return renderDone(P);
+  if (st.tab === 'sum')  return renderSum(P);
+}
+
+/* --- แท็บ 1 · คิวรับบริการ (รอเรียก + เช็คอิน) --- */
+function renderNow(P){
+  var live = st.items.filter(function(r){ return r.status === 'booked' || r.status === 'checkin'; });
+  var all  = st.items.filter(function(r){ return r.status !== 'cancelled'; });
+  P.appendChild(el(
+    '<div class="tiles">' +
+      '<div class="tile hi"><b>' + all.filter(function(r){ return r.status === 'booked'; }).length + '</b><small>รอเรียก</small></div>' +
+      '<div class="tile"><b>' + all.filter(function(r){ return r.status === 'checkin'; }).length + '</b><small>เช็คอิน</small></div>' +
+      '<div class="tile"><b>' + all.filter(function(r){ return r.status === 'done'; }).length + '</b><small>เสร็จสิ้น</small></div>' +
+      '<div class="tile"><b>' + all.filter(function(r){ return r.status === 'noshow'; }).length + '</b><small>ไม่มา</small></div>' +
+    '</div>'));
+
+  var f = el('<div class="filters"></div>');
+  [['all','ทั้งหมด']].concat(Object.keys(D).map(function(k){ return [k, D[k].name]; })).forEach(function(o){
+    var b = document.createElement('button');
+    b.textContent = o[1]; b.setAttribute('aria-pressed', st.filter === o[0] ? 'true' : 'false');
+    b.onclick = function(){ st.filter = o[0]; render(); };
+    f.appendChild(b);
+  });
+  P.appendChild(f);
+
+  var show = live.filter(function(r){ return st.filter === 'all' || r.dept === st.filter; });
+  show.sort(function(a,b){ return a.slot < b.slot ? -1 : a.slot > b.slot ? 1 : (a.queueNo < b.queueNo ? -1 : 1); });
+  if (!show.length){
+    P.appendChild(el('<div class="empty">ไม่มีคิวที่รอให้บริการ' +
+      (st.date === bkkNow().date ? 'ในวันนี้' : 'ในวันที่เลือก') + '</div>'));
+    return;
+  }
+  show.forEach(function(r){ P.appendChild(qrow(r)); });
+}
+
+/* --- แท็บ 2 · นัดล่วงหน้า --- */
+function renderUp(P){
+  if (!st.upcoming.length){
+    P.appendChild(el('<div class="empty">ยังไม่มีคิวที่จองล่วงหน้า</div>')); return;
+  }
+  var byDate = {};
+  st.upcoming.forEach(function(r){ (byDate[r.date] = byDate[r.date] || []).push(r); });
+  var dates = Object.keys(byDate).sort();
+  P.appendChild(el('<p class="sechead">นัดล่วงหน้าทั้งหมด ' + st.upcoming.length +
+    ' รายการ ใน ' + dates.length + ' วัน</p>'));
+  dates.forEach(function(dt){
+    var list = byDate[dt];
+    var perDept = Object.keys(D).map(function(k){
+      var n = list.filter(function(r){ return r.dept === k; }).length;
+      return n ? D[k].name + ' ' + n : null;
+    }).filter(Boolean).join(' · ');
+    P.appendChild(el('<div class="gh"><b>' + esc(thDate(dt, true)) + ' · ' + esc(thUntil(dt)) +
+      '</b><span class="n">' + esc(perDept) + '</span></div>'));
+    list.sort(function(a,b){ return a.slot < b.slot ? -1 : 1; });
+    list.forEach(function(r){ P.appendChild(qrow(r, { showDate:true, actions:false, isNew: !st.seen[r.id] })); });
   });
 }
 
-if (st.key) {
-  api({ action:'queue', date: st.date, dept:'all' })
-    .then(function(j){ render(j.items); showMain(true); })
-    .catch(function(){ showMain(false); });
+/* --- แท็บ 3 · เสร็จสิ้น (แยกตามแผนก) --- */
+function renderDone(P){
+  var done = st.items.filter(function(r){ return r.status === 'done'; });
+  var other = st.items.filter(function(r){ return r.status === 'noshow' || r.status === 'cancelled'; });
+  P.appendChild(el('<p class="sechead">' + esc(thDate(st.date, true)) +
+    ' · ให้บริการเสร็จสิ้น ' + done.length + ' ราย</p>'));
+  if (!done.length && !other.length){
+    P.appendChild(el('<div class="empty">ยังไม่มีเคสที่เสร็จสิ้นในวันที่เลือก</div>')); return;
+  }
+  Object.keys(D).forEach(function(k){
+    var list = done.filter(function(r){ return r.dept === k; });
+    if (!list.length) return;
+    P.appendChild(groupHead({ tag: D[k].tag, dept: k }, D[k].name, list.length));
+    list.sort(function(a,b){ return a.slot < b.slot ? -1 : 1; });
+    list.forEach(function(r){ P.appendChild(qrow(r)); });
+  });
+  if (other.length){
+    P.appendChild(el('<p class="sechead">ไม่มาตามนัด / ยกเลิก</p>'));
+    other.sort(function(a,b){ return a.slot < b.slot ? -1 : 1; });
+    other.forEach(function(r){ P.appendChild(qrow(r, { actions: r.status === 'noshow' })); });
+  }
+}
+
+/* --- แท็บ 4 · สรุปยอด --- */
+function renderSum(P){
+  P.appendChild(el('<p class="sechead">สรุปประจำวัน · ' + esc(thDate(st.date, true)) + '</p>'));
+  var any = false;
+  Object.keys(D).forEach(function(k){
+    var list = st.items.filter(function(r){ return r.dept === k; });
+    var live = list.filter(function(r){ return r.status !== 'cancelled'; });
+    if (list.length) any = true;
+    var svc = {};
+    live.forEach(function(r){ svc[r.service] = (svc[r.service] || 0) + 1; });
+    var rows = Object.keys(svc).sort(function(a,b){ return svc[b] - svc[a]; })
+      .map(function(s){ return '<div class="kv sub"><span>' + esc(s) + '</span><b>' + svc[s] + '</b></div>'; }).join('');
+    function n(s){ return list.filter(function(r){ return r.status === s; }).length; }
+    P.appendChild(el(
+      '<div class="card" data-dept="' + k + '">' +
+        '<div class="ch"><b>' + esc(D[k].name) + '</b><span class="n">' + live.length + '</span></div>' +
+        '<div style="padding:10px 0 12px">' +
+          '<div class="kv"><span>รอเรียก</span><b>' + n('booked') + '</b></div>' +
+          '<div class="kv"><span>เช็คอินแล้ว</span><b>' + n('checkin') + '</b></div>' +
+          '<div class="kv"><span>ให้บริการเสร็จสิ้น</span><b>' + n('done') + '</b></div>' +
+          '<div class="kv"><span>ไม่มาตามนัด</span><b>' + n('noshow') + '</b></div>' +
+          '<div class="kv"><span>ยกเลิก</span><b>' + n('cancelled') + '</b></div>' +
+          (rows ? '<div class="kv" style="margin-top:6px;border-top:1px solid var(--line);padding-top:9px"><span>แยกตามบริการ</span><b></b></div>' + rows : '') +
+        '</div>' +
+      '</div>'));
+  });
+  if (!any) P.appendChild(el('<div class="empty">ไม่มีข้อมูลในวันที่เลือก</div>'));
+
+  P.appendChild(el('<p class="sechead">ย้อนหลังรายวัน</p>'));
+  var f = el('<div class="filters" id="rangef"></div>');
+  [[7,'7 วัน'],[30,'30 วัน']].forEach(function(o){
+    var b = document.createElement('button');
+    b.textContent = o[1]; b.setAttribute('aria-pressed', (st.range || 7) === o[0] ? 'true' : 'false');
+    b.onclick = function(){ st.range = o[0]; render(); };
+    f.appendChild(b);
+  });
+  P.appendChild(f);
+  var box = el('<div class="tw"><div class="empty">กำลังโหลด…</div></div>');
+  P.appendChild(box);
+
+  var days = st.range || 7;
+  api({ action:'range', from: addDays(st.date, -(days - 1)), to: st.date })
+    .then(function(j){ box.innerHTML = rangeTable(j.days); })
+    .catch(function(e){ box.innerHTML = '<div class="empty">โหลดไม่สำเร็จ · ' + esc(e.message) + '</div>'; });
+}
+
+function rangeTable(days){
+  var keys = Object.keys(days || {}).sort().reverse();
+  if (!keys.length) return '<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';
+  var dk = Object.keys(D);
+  var tot = {}; dk.forEach(function(k){ tot[k] = 0; });
+  var tDone = 0, tNo = 0, tAll = 0;
+  var body = keys.map(function(d){
+    var row = days[d], done = 0, no = 0, sum = 0;
+    var cells = dk.map(function(k){
+      var v = (row[k] && row[k].total) || 0;
+      tot[k] += v; sum += v;
+      done += (row[k] && row[k].done) || 0;
+      no   += (row[k] && row[k].noshow) || 0;
+      return '<td' + (v ? '' : ' class="zero"') + '>' + (v || '–') + '</td>';
+    }).join('');
+    tDone += done; tNo += no; tAll += sum;
+    return '<tr><td>' + esc(thDate(d)) + '<small style="color:var(--ink3)"> ' + DAY_S[dow(d)] + '</small></td>' +
+      cells + '<td><b>' + sum + '</b></td><td>' + done + '</td><td' + (no ? '' : ' class="zero"') + '>' + (no || '–') + '</td></tr>';
+  }).join('');
+  return '<table><thead><tr><th>วันที่</th>' +
+    dk.map(function(k){ return '<th>' + esc(D[k].name) + '</th>'; }).join('') +
+    '<th>รวม</th><th>เสร็จสิ้น</th><th>ไม่มา</th></tr></thead><tbody>' + body +
+    '</tbody><tfoot><tr><td>รวมทั้งช่วง</td>' +
+    dk.map(function(k){ return '<td>' + tot[k] + '</td>'; }).join('') +
+    '<td>' + tAll + '</td><td>' + tDone + '</td><td>' + tNo + '</td></tr></tfoot></table>';
+}
+
+/* ---------------- เริ่มทำงาน ---------------- */
+if (st.key){
+  api({ action:'queue', date: st.date }).then(enter).catch(function(){ $('login').hidden = false; });
 }
 })();
 </script>

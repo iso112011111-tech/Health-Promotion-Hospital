@@ -117,13 +117,11 @@
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="../config.js"></script>
+<script src="../assets/date-th.js"></script>
 <script>
 (function () {
 'use strict';
 var C = window.APP_CONFIG, D = C.DEPTS;
-var DAY_S = ['อา','จ','อ','พ','พฤ','ศ','ส'];
-var DAY_L = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
-var MON   = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 var ICON = {
   tm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c0-8.5 6.2-14.5 16.5-15.5C21 15 14.5 20.5 4 20z"/><path d="M4.5 19.5c4-4.5 8-7.5 12.5-10"/></svg>',
   dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.2C5 3.2 3.6 5 3.6 7.6c0 3.4 1 4.6 1.7 8 .5 2.6 1 5.2 2.3 5.2 1.2 0 1.5-2.2 1.9-4.4.3-1.6.6-2.4 1.5-2.4s1.2.8 1.5 2.4c.4 2.2.7 4.4 1.9 4.4 1.3 0 1.8-2.6 2.3-5.2.7-3.4 1.7-4.6 1.7-8 0-2.6-1.4-4.4-3.9-4.4-1.6 0-2.4.8-3.5.8s-1.9-.8-3.5-.8z"/></svg>'
@@ -134,29 +132,6 @@ var st = { step: 0, dept: null, svc: null, date: null, slot: null,
            profile: null, patient: null, counts: {}, countsLoaded: false, idToken: null, last: null };
 
 /* ---------- ยูทิลิตี้ ---------- */
-/* ---- วันเวลาอ้างอิงเขตเวลาไทยเสมอ ไม่ขึ้นกับการตั้งค่าเครื่องผู้ใช้ ---- */
-function bkkNow(){
-  var g = {};
-  try {
-    new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Bangkok', year:'numeric', month:'2-digit',
-      day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' })
-      .formatToParts(new Date()).forEach(function(x){ g[x.type] = x.value; });
-  } catch (e) {
-    var d = new Date();
-    g = { year:d.getFullYear(), month:('0'+(d.getMonth()+1)).slice(-2), day:('0'+d.getDate()).slice(-2),
-          hour:d.getHours(), minute:d.getMinutes() };
-  }
-  return { date: g.year+'-'+g.month+'-'+g.day, min: (+g.hour % 24) * 60 + (+g.minute) };
-}
-/* คำนวณด้วย UTC ล้วน เดือน/ปีจึงข้ามได้ถูกต้องโดยไม่เพี้ยนตามเขตเวลา */
-function dObj(s){ var p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1]-1, +p[2])); }
-function addDays(s, n){ var d = dObj(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
-function dow(s){ return dObj(s).getUTCDay(); }
-function slotStart(sl){ var t = sl.split('–')[0].split(':'); return (+t[0]) * 60 + (+t[1]); }
-function thDate(s, full){
-  var d = dObj(s);
-  return (full ? DAY_L[d.getUTCDay()]+'ที่ ' : '') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + (d.getUTCFullYear()+543);
-}
 function digits(s){ return (s||'').replace(/\D/g,''); }
 function validThaiId(s){
   var n = digits(s); if (n.length !== 13) return false;
@@ -190,9 +165,9 @@ function hash(s){ var h = 7; for (var i=0;i<s.length;i++) h = (h*31 + s.charCode
 function demo(p){
   return new Promise(function(res){ setTimeout(function(){
     if (p.action === 'counts'){
-      var c = {}, dep = D[p.dept], t = new Date();
-      for (var i=1;i<=C.BOOK_AHEAD_DAYS;i++){
-        var d = new Date(t.getTime()+i*864e5), key = ymd(d);
+      var c = {}, dep = D[p.dept], t = bkkNow().date;
+      for (var i=0;i<=C.BOOK_AHEAD_DAYS;i++){
+        var key = addDays(t, i);
         dep.slots.forEach(function(sl){ c[key+'|'+sl] = [0,1,2,3,6,4,2][hash(p.dept+key+sl)%7]; });
       }
       res({ ok:true, counts:c });

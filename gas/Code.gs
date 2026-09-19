@@ -42,9 +42,11 @@ function doPost(e) {
       book:    a_book,
       mine:    a_mine,
       cancel:  a_cancel,
-      queue:   a_queue,       // เจ้าหน้าที่
-      status:  a_status,      // เจ้าหน้าที่
-      call:    a_call         // เจ้าหน้าที่
+      queue:    a_queue,      // เจ้าหน้าที่
+      upcoming: a_upcoming,   // เจ้าหน้าที่ — คิวจองล่วงหน้า
+      range:    a_range,      // เจ้าหน้าที่ — สรุปยอดหลายวัน
+      status:   a_status,     // เจ้าหน้าที่
+      call:     a_call        // เจ้าหน้าที่
     }[q.action];
     if (!handler) throw new Error('ไม่รู้จักคำสั่ง: ' + q.action);
     return json(handler(q));
@@ -289,6 +291,43 @@ function a_queue(q) {
     return a.slot < b.slot ? -1 : a.slot > b.slot ? 1 : (a.queueNo < b.queueNo ? -1 : 1);
   });
   return { ok: true, date: date, items: out };
+}
+
+/** คิวที่จองล่วงหน้าไว้ (ตั้งแต่พรุ่งนี้เป็นต้นไป) — ใช้แจ้งเตือนเจ้าหน้าที่ */
+function a_upcoming(q) {
+  staff_(q);
+  var t = today_(), out = [];
+  rows_(book_()).forEach(function (r) {
+    var d = r.date instanceof Date ? ymd_(r.date) : String(r.date);
+    if (d <= t || r.status === 'cancelled') return;
+    out.push({ id: r.id, dept: r.dept, service: r.service, date: d, slot: r.slot,
+               queueNo: r.queueNo, name: r.name, tel: String(r.tel).replace(/^'/, ''),
+               right: r.right, note: r.note, status: r.status,
+               createdAt: r.createdAt ? new Date(r.createdAt).getTime() : 0 });
+  });
+  out.sort(function (a, b) {
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.slot < b.slot ? -1 : a.slot > b.slot ? 1 : 0);
+  });
+  return { ok: true, items: out, today: t };
+}
+
+/** สรุปยอดรายวันในช่วงที่กำหนด แยกตามแผนก */
+function a_range(q) {
+  staff_(q);
+  var from = String(q.from || ''), to = String(q.to || '');
+  if (!from || !to) throw new Error('ต้องระบุช่วงวันที่');
+  var days = {};
+  rows_(book_()).forEach(function (r) {
+    var d = r.date instanceof Date ? ymd_(r.date) : String(r.date);
+    if (d < from || d > to) return;
+    if (!days[d]) days[d] = {};
+    if (!days[d][r.dept]) days[d][r.dept] =
+      { total: 0, booked: 0, checkin: 0, done: 0, noshow: 0, cancelled: 0 };
+    var b = days[d][r.dept];
+    if (r.status !== 'cancelled') b.total++;
+    if (b[r.status] !== undefined) b[r.status]++;
+  });
+  return { ok: true, from: from, to: to, days: days };
 }
 
 function a_status(q) {
