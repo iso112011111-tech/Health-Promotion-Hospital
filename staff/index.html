@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>คิววันนี้ · เจ้าหน้าที่ รพ.สต.บ้านหนองครกใต้</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Noto+Serif+Thai:wght@600;700&display=swap">
+<link rel="stylesheet" href="../assets/theme.css">
+<style>
+.app{max-width:760px}
+.bar{display:flex;gap:8px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.bar input[type=date]{padding:7px 10px;border-radius:9px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--ink);font:inherit;font-size:14px}
+.bar .sp{flex:1}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:14px 16px 4px}
+.tile{background:var(--card2);border-radius:11px;padding:10px 6px;text-align:center}
+.tile b{display:block;font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile small{font-size:10.5px;color:var(--ink3)}
+.filters{display:flex;gap:7px;padding:12px 16px}
+.filters button{font-size:12.5px;font-weight:600;padding:5px 13px;border-radius:999px;background:var(--sunk);color:var(--ink3)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.qrow{display:flex;align-items:flex-start;gap:12px;padding:13px 16px;border-top:1px solid var(--line)}
+.qrow .time{font-size:12px;color:var(--ink3);font-variant-numeric:tabular-nums;width:46px;flex:0 0 auto;padding-top:2px}
+.qrow .code{font-family:"Noto Serif Thai",serif;font-weight:700;font-size:14px;color:var(--acc);width:48px;flex:0 0 auto;padding-top:1px}
+.qrow .who{flex:1;min-width:0}
+.qrow .who b{display:block;font-size:14.5px;font-weight:600;line-height:1.35}
+.qrow .who small{font-size:11.5px;color:var(--ink3);display:block}
+.qrow .who .memo{font-size:11.5px;color:var(--warn);background:var(--warnsoft);
+  padding:3px 8px;border-radius:7px;display:inline-block;margin-top:4px}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.acts button{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:8px;border:1.5px solid var(--line);color:var(--ink2)}
+.acts button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.login{max-width:340px;margin:0 auto;padding-top:14vh}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="topbar">
+    <div class="ttl">คิวรับบริการ<span id="orgsub"></span></div>
+    <div style="flex:1"></div>
+    <button class="textbtn" id="logout" hidden>ออกจากระบบ</button>
+  </div>
+
+  <!-- เข้าสู่ระบบ -->
+  <div class="body" id="login">
+    <div class="login">
+      <h2 class="qhead">สำหรับเจ้าหน้าที่</h2>
+      <p class="qsub">กรอกรหัสผ่านที่ตั้งไว้ใน Script Properties</p>
+      <div class="field"><label for="key">รหัสผ่านเจ้าหน้าที่</label>
+        <input id="key" type="password" autocomplete="current-password"><p class="err" hidden></p></div>
+      <button class="cta" id="btnlogin">เข้าสู่ระบบ</button>
+    </div>
+  </div>
+
+  <!-- รายการคิว -->
+  <div id="main" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
+    <div class="bar">
+      <input type="date" id="date">
+      <button class="textbtn" id="todaybtn">วันนี้</button>
+      <div class="sp"></div>
+      <button class="textbtn" id="refresh">รีเฟรช</button>
+    </div>
+    <div class="tiles">
+      <div class="tile"><b id="t-all">–</b><small>จองแล้ว</small></div>
+      <div class="tile"><b id="t-in">–</b><small>เช็คอิน</small></div>
+      <div class="tile"><b id="t-wait">–</b><small>รอเรียก</small></div>
+      <div class="tile"><b id="t-no">–</b><small>ไม่มา</small></div>
+    </div>
+    <div class="filters" id="filters">
+      <button data-f="all" aria-pressed="true">ทั้งหมด</button>
+      <button data-f="tm" aria-pressed="false">แผนไทย</button>
+      <button data-f="dn" aria-pressed="false">ทันตกรรม</button>
+    </div>
+    <div class="body" style="padding:0" id="list"></div>
+  </div>
+</div>
+
+<script src="../config.js"></script>
+<script>
+(function () {
+'use strict';
+var C = window.APP_CONFIG, D = C.DEPTS;
+var $ = function (id) { return document.getElementById(id); };
+var KEYNAME = 'nkt_staff_key';
+var st = { key: '', date: '', filter: 'all', items: [] };
+
+$('orgsub').textContent = C.ORG;
+function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+st.date = ymd(new Date());
+$('date').value = st.date;
+
+function api(p){
+  p.key = st.key;
+  if (C.DEMO) return demo(p);
+  return fetch(C.API_URL, { method:'POST', body: JSON.stringify(p) })
+    .then(function(r){ return r.json(); })
+    .then(function(j){ if (!j.ok) throw new Error(j.error || 'ระบบขัดข้อง'); return j; });
+}
+var DEMO_ROWS = [
+  { id:'1', dept:'tm', slot:'09:00–10:00', queueNo:'ท-001', name:'บุญมี ทองใบ', service:'นวดไทย', tel:'0812345678', right:'บัตรทอง (UC)', note:'', status:'checkin' },
+  { id:'2', dept:'dn', slot:'09:00–10:00', queueNo:'ฟ-001', name:'ณัฐพล ศรีมงคล', service:'ขูดหินปูน', tel:'0823456789', right:'ข้าราชการ', note:'', status:'checkin' },
+  { id:'3', dept:'tm', slot:'10:00–11:00', queueNo:'ท-002', name:'สมหญิง ศรีสะอาด', service:'พอกเข่า', tel:'0834567890', right:'บัตรทอง (UC)', note:'ปวดเข่าซ้ายมา 2 สัปดาห์', status:'booked' },
+  { id:'4', dept:'dn', slot:'10:00–11:00', queueNo:'ฟ-002', name:'กนกวรรณ ใจดี', service:'อุดฟัน', tel:'0845678901', right:'ประกันสังคม', note:'', status:'booked' },
+  { id:'5', dept:'tm', slot:'10:00–11:00', queueNo:'ท-003', name:'ประยูร แก้วมณี', service:'ประคบสมุนไพร', tel:'0856789012', right:'บัตรทอง (UC)', note:'', status:'noshow' },
+  { id:'6', dept:'tm', slot:'11:00–12:00', queueNo:'ท-004', name:'วิไล พันธ์ดี', service:'อบสมุนไพร', tel:'0867890123', right:'ชำระเงินเอง', note:'', status:'booked' },
+  { id:'7', dept:'dn', slot:'11:00–12:00', queueNo:'ฟ-003', name:'ธีรศักดิ์ นามวงศ์', service:'ถอนฟัน', tel:'0878901234', right:'บัตรทอง (UC)', note:'แพ้ยาเพนนิซิลลิน', status:'booked' },
+  { id:'8', dept:'dn', slot:'14:00–15:00', queueNo:'ฟ-004', name:'ด.ช.ภูมิ รักเรียน', service:'เคลือบฟลูออไรด์', tel:'0889012345', right:'บัตรทอง (UC)', note:'', status:'booked' },
+  { id:'9', dept:'tm', slot:'15:00–16:00', queueNo:'ท-005', name:'อำนวย ชัยสิทธิ์', service:'ติดตามผลการรักษา', tel:'0890123456', right:'บัตรทอง (UC)', note:'', status:'booked' }
+];
+function demo(p){
+  return new Promise(function(res){ setTimeout(function(){
+    if (p.action === 'queue') res({ ok:true, date:p.date, items: DEMO_ROWS.slice() });
+    else if (p.action === 'status'){
+      DEMO_ROWS.forEach(function(r){ if (r.id === p.id) r.status = p.status; }); res({ ok:true });
+    } else res({ ok:true });
+  }, 200); });
+}
+
+/* เข้าสู่ระบบ */
+try { st.key = localStorage.getItem(KEYNAME) || ''; } catch (e) {}
+if (C.DEMO) { st.key = 'demo'; }
+function showMain(on){
+  $('login').hidden = on; $('main').hidden = !on; $('logout').hidden = !on;
+  if (on) load();
+}
+$('btnlogin').onclick = function(){
+  var k = $('key').value.trim();
+  if (!k) return;
+  st.key = k;
+  api({ action:'queue', date: st.date, dept:'all' })
+    .then(function(j){ try { localStorage.setItem(KEYNAME, k); } catch (e) {} render(j.items); showMain(true); })
+    .catch(function(e){ var p = $('login').querySelector('.err'); p.textContent = e.message; p.hidden = false; });
+};
+$('key').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('btnlogin').click(); });
+$('logout').onclick = function(){ try { localStorage.removeItem(KEYNAME); } catch (e) {} location.reload(); };
+
+/* รายการ */
+$('date').onchange = function(){ st.date = this.value; load(); };
+$('todaybtn').onclick = function(){ st.date = ymd(new Date()); $('date').value = st.date; load(); };
+$('refresh').onclick = function(){ load(); };
+$('filters').onclick = function(e){
+  var b = e.target.closest('button'); if (!b) return;
+  st.filter = b.getAttribute('data-f');
+  Array.prototype.forEach.call(this.children, function(x){ x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+  render(st.items);
+};
+
+function load(){
+  $('list').innerHTML = '<div class="empty">กำลังโหลด…</div>';
+  api({ action:'queue', date: st.date, dept:'all' })
+    .then(function(j){ render(j.items); })
+    .catch(function(e){ $('list').innerHTML = '<div class="empty">โหลดไม่สำเร็จ · ' + e.message + '</div>'; });
+}
+
+var LABEL = { booked:['รอเรียก','wait'], checkin:['เช็คอินแล้ว','ok'],
+              done:['เสร็จสิ้น','mute'], noshow:['ไม่มาตามนัด','bad'], cancelled:['ยกเลิก','mute'] };
+
+function render(items){
+  st.items = items || [];
+  var show = st.items.filter(function(r){ return st.filter === 'all' || r.dept === st.filter; });
+  var live = st.items.filter(function(r){ return r.status !== 'cancelled'; });
+  $('t-all').textContent  = live.length;
+  $('t-in').textContent   = live.filter(function(r){ return r.status === 'checkin' || r.status === 'done'; }).length;
+  $('t-wait').textContent = live.filter(function(r){ return r.status === 'booked'; }).length;
+  $('t-no').textContent   = live.filter(function(r){ return r.status === 'noshow'; }).length;
+
+  var L = $('list'); L.innerHTML = '';
+  if (!show.length){ L.innerHTML = '<div class="empty">ไม่มีคิวในวันที่เลือก</div>'; return; }
+  show.forEach(function(r){
+    var d = D[r.dept] || { name: r.dept };
+    var lab = LABEL[r.status] || ['-', 'mute'];
+    var el = document.createElement('div');
+    el.className = 'qrow'; el.setAttribute('data-dept', r.dept);
+    el.innerHTML =
+      '<span class="time">' + r.slot.split('–')[0] + '</span>' +
+      '<span class="code">' + r.queueNo + '</span>' +
+      '<span class="who"><b>' + r.name + ' <span class="chip ' + lab[1] + '">' + lab[0] + '</span></b>' +
+      '<small>' + d.name + ' · ' + r.service + '</small>' +
+      '<small>' + (r.tel || '') + (r.right ? ' · ' + r.right : '') + '</small>' +
+      (r.note ? '<span class="memo">' + r.note + '</span>' : '') +
+      '<span class="acts"></span></span>';
+    var acts = el.querySelector('.acts');
+    function add(txt, fn, pri){
+      var b = document.createElement('button'); b.textContent = txt;
+      if (pri) b.className = 'pri';
+      b.onclick = function(){ b.disabled = true; fn().then(load).catch(function(e){ alert(e.message); b.disabled = false; }); };
+      acts.appendChild(b);
+    }
+    if (r.status === 'booked'){
+      add('เรียกคิว', function(){ return api({ action:'call', id:r.id }); }, true);
+      add('เช็คอิน',  function(){ return api({ action:'status', id:r.id, status:'checkin' }); });
+      add('ไม่มา',    function(){ return api({ action:'status', id:r.id, status:'noshow' }); });
+    } else if (r.status === 'checkin'){
+      add('เสร็จสิ้น', function(){ return api({ action:'status', id:r.id, status:'done' }); }, true);
+    } else if (r.status === 'noshow' || r.status === 'done'){
+      add('ย้อนกลับเป็นรอเรียก', function(){ return api({ action:'status', id:r.id, status:'booked' }); });
+    }
+    L.appendChild(el);
+  });
+}
+
+if (st.key) {
+  api({ action:'queue', date: st.date, dept:'all' })
+    .then(function(j){ render(j.items); showMain(true); })
+    .catch(function(){ showMain(false); });
+}
+})();
+</script>
+</body>
+</html>

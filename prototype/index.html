@@ -1,0 +1,549 @@
+<title>จองคิว รพ.สต.หนองครกใต้</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&family=Noto+Serif+Thai:wght@600;700&display=swap">
+<style>
+:root{
+  --paper:#f1f8f4; --card:#ffffff; --card2:#edf7f2; --sunk:#e7f3ee;
+  --ink:#11302a; --ink2:#496860; --ink3:#87a49a; --line:#d6e9e1;
+  --brand:#0f9b74; --brand2:#0b7d5d; --brandsoft:#dcf2e9;
+  --tm:#12a37a; --tmsoft:#d9f2e8;
+  --dn:#0b8b96; --dnsoft:#d5eef0;
+  --gold:#a5812b; --goldsoft:#f6eed8;
+  --busy-bg:#e6ece9; --busy-ink:#94a8a1;
+  --crit:#b3574a;
+  --chat1:#d2e8df; --chat2:#c3ddd3;
+  --acc:var(--brand); --accsoft:var(--brandsoft);
+  --shadow:0 1px 2px rgba(12,60,45,.06),0 10px 30px rgba(12,60,45,.08);
+  --radius:14px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#0a1512; --card:#13211d; --card2:#182a24; --sunk:#111d19;
+    --ink:#dff0e9; --ink2:#a2bcb3; --ink3:#77948b; --line:#26372f;
+    --brand:#3fd3a2; --brand2:#2fb98c; --brandsoft:#13332a;
+    --tm:#45d5a4; --tmsoft:#12342a;
+    --dn:#46c6d4; --dnsoft:#0f3036;
+    --gold:#d5ae5c; --goldsoft:#33290f;
+    --busy-bg:#22302b; --busy-ink:#6f8a82;
+    --crit:#d9796a;
+    --chat1:#263832; --chat2:#1e2e29;
+    --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0a1512; --card:#13211d; --card2:#182a24; --sunk:#111d19;
+  --ink:#dff0e9; --ink2:#a2bcb3; --ink3:#77948b; --line:#26372f;
+  --brand:#3fd3a2; --brand2:#2fb98c; --brandsoft:#13332a;
+  --tm:#45d5a4; --tmsoft:#12342a;
+  --dn:#46c6d4; --dnsoft:#0f3036;
+  --gold:#d5ae5c; --goldsoft:#33290f;
+  --busy-bg:#22302b; --busy-ink:#6f8a82;
+  --crit:#d9796a;
+  --chat1:#263832; --chat2:#1e2e29;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 10px 30px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Sarabun",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.62;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:"Noto Serif Thai","Sarabun",serif;font-weight:700;margin:0;text-wrap:balance;line-height:1.35}
+p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+[data-dept="tm"]{--acc:var(--tm);--accsoft:var(--tmsoft)}
+[data-dept="dn"]{--acc:var(--dn);--accsoft:var(--dnsoft)}
+
+.wrap{max-width:1080px;margin:0 auto;padding-inline:16px;padding-block:40px 64px}
+.eyebrow{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);font-weight:600}
+.pagehead h1{font-size:clamp(25px,4.6vw,36px);margin-top:8px;letter-spacing:-.01em}
+.lede{color:var(--ink2);margin-top:12px;max-width:62ch}
+.stage{display:grid;grid-template-columns:minmax(0,375px) minmax(0,1fr);gap:40px;margin-top:36px;align-items:start}
+@media (max-width:880px){.stage{grid-template-columns:1fr;gap:28px}}
+
+.steps{display:flex;gap:6px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.steps button{flex:0 0 auto;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;
+  background:var(--sunk);color:var(--ink3);border:1px solid transparent;transition:.15s}
+.steps button[aria-current="true"]{background:var(--brand);color:#fff;border-color:var(--brand)}
+.steps button:hover:not([aria-current="true"]){color:var(--ink);border-color:var(--line)}
+
+.phone{width:100%;max-width:375px;height:740px;border-radius:34px;background:var(--card);
+  box-shadow:var(--shadow);border:1px solid var(--line);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.liffbar{flex:0 0 auto;display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card);z-index:3}
+.liffbar .x{width:26px;height:26px;border-radius:50%;background:var(--sunk);display:grid;place-items:center;color:var(--ink3);font-size:14px}
+.liffbar .t{font-size:13px;font-weight:600;line-height:1.25}
+.liffbar .t span{display:block;font-size:10.5px;font-weight:400;color:var(--ink3)}
+.stack{position:relative;flex:1;min-height:0}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--card)}
+.sbody{flex:1;overflow-y:auto;padding:18px 16px 20px}
+.sfoot{flex:0 0 auto;padding:12px 16px calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:var(--card)}
+
+.hi{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.avatar{width:38px;height:38px;border-radius:50%;background:var(--brandsoft);color:var(--brand);
+  display:grid;place-items:center;font-weight:700;font-size:14px;flex:0 0 auto}
+.hi b{display:block;font-size:14px;font-weight:600}
+.hi small{color:var(--ink3);font-size:11.5px}
+.qhead{font-size:17px;margin-bottom:3px}
+.qsub{font-size:12.5px;color:var(--ink3);margin-bottom:16px}
+
+.deptgrid{display:grid;gap:12px}
+.deptcard{display:flex;gap:13px;align-items:center;text-align:left;width:100%;padding:16px 14px;
+  border-radius:var(--radius);border:1.5px solid var(--line);background:var(--card);transition:.15s}
+.deptcard:hover{border-color:var(--acc);background:var(--card2)}
+.deptcard .ic{width:46px;height:46px;border-radius:13px;background:var(--accsoft);color:var(--acc);
+  display:grid;place-items:center;flex:0 0 auto}
+.deptcard .ic svg{width:25px;height:25px}
+.deptcard b{display:block;font-size:16px;font-weight:600;line-height:1.3}
+.deptcard small{color:var(--ink3);font-size:12px;display:block}
+.deptcard .go{margin-left:auto;color:var(--ink3);font-size:18px}
+.opendays{display:inline-block;margin-top:5px;font-size:11px;font-weight:600;color:var(--acc);
+  background:var(--accsoft);padding:1px 8px;border-radius:999px}
+
+.crumb{display:flex;align-items:center;gap:7px;margin-bottom:14px;font-size:12px}
+.crumb .pill{display:inline-flex;align-items:center;gap:6px;background:var(--accsoft);color:var(--acc);
+  font-weight:600;padding:3px 10px;border-radius:999px}
+.crumb .tag{font-family:"Noto Serif Thai",serif;font-weight:700}
+.crumb button{color:var(--ink3);font-size:11.5px;text-decoration:underline;text-underline-offset:2px}
+
+.list{display:flex;flex-direction:column;gap:7px}
+.opt{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:12px 13px;
+  border-radius:11px;border:1.5px solid var(--line);background:var(--card);font-size:14.5px;transition:.15s}
+.opt:hover{border-color:var(--acc)}
+.opt[aria-pressed="true"]{border-color:var(--acc);background:var(--accsoft);font-weight:600}
+.opt .dot{width:17px;height:17px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;display:grid;place-items:center}
+.opt[aria-pressed="true"] .dot{border-color:var(--acc);background:var(--acc)}
+.opt[aria-pressed="true"] .dot::after{content:"";width:6px;height:6px;border-radius:50%;background:var(--card)}
+
+.label{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);margin:20px 0 9px}
+.label:first-child{margin-top:0}
+.dayrow{display:flex;gap:7px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;margin:0 -16px;padding-inline:16px}
+.dayrow::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;width:52px;padding:8px 0;border-radius:11px;border:1.5px solid var(--line);
+  background:var(--card);text-align:center;line-height:1.25;transition:.15s}
+.day small{display:block;font-size:10.5px;color:var(--ink3)}
+.day b{display:block;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.day em{display:block;font-size:9.5px;font-style:normal;color:var(--ink3)}
+.day[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+.day[aria-pressed="true"] small,.day[aria-pressed="true"] em{color:rgba(255,255,255,.82)}
+.day:disabled{background:var(--sunk);border-color:transparent;color:var(--busy-ink);cursor:not-allowed}
+.day:disabled small,.day:disabled em{color:var(--busy-ink)}
+
+.slots{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.slot{padding:11px 10px;border-radius:11px;border:1.5px solid var(--line);background:var(--card);text-align:left;transition:.15s}
+.slot b{display:block;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.slot small{font-size:11px;color:var(--ink3)}
+.slot[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
+.slot[aria-pressed="true"] small{color:rgba(255,255,255,.85)}
+.slot:disabled{background:var(--busy-bg);border-color:transparent;color:var(--busy-ink);cursor:not-allowed}
+.slot:disabled small{color:var(--busy-ink)}
+.mealgap{grid-column:1/-1;display:flex;align-items:center;gap:10px;color:var(--ink3);font-size:11px;margin:4px 0}
+.mealgap::before,.mealgap::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.sum{border:1px solid var(--line);border-radius:var(--radius);background:var(--card2);padding:13px 14px;margin-bottom:18px}
+.sum .row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
+.sum .row span{color:var(--ink3);flex:0 0 auto}
+.sum .row b{font-weight:600;text-align:right}
+.sum .edit{width:100%;text-align:right;font-size:11.5px;color:var(--acc);font-weight:600;margin-top:6px}
+
+.field{margin-bottom:13px}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+.field label i{font-style:normal;color:var(--crit)}
+.field input,.field textarea,.field select{width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--ink);font:inherit;font-size:14px}
+.field input:focus,.field textarea:focus,.field select:focus{outline:2px solid var(--acc);outline-offset:1px;border-color:var(--acc)}
+.field .help{font-size:11px;color:var(--ink3);margin-top:4px}
+.prefill{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--brand);background:var(--brandsoft);
+  padding:7px 11px;border-radius:9px;margin-bottom:14px}
+.consent{display:flex;gap:9px;align-items:flex-start;font-size:12px;color:var(--ink2);
+  background:var(--sunk);padding:11px 12px;border-radius:11px;margin-top:4px;cursor:pointer}
+.consent input{margin-top:3px;accent-color:var(--brand);width:16px;height:16px;flex:0 0 auto}
+
+.cta{width:100%;padding:13px;border-radius:12px;background:var(--acc);color:#fff;font-weight:600;font-size:15px;transition:.15s}
+.cta:hover{filter:brightness(1.06)}
+.cta:disabled{background:var(--busy-bg);color:var(--busy-ink);cursor:not-allowed;filter:none}
+.ghost{width:100%;padding:11px;border-radius:12px;border:1.5px solid var(--line);color:var(--ink2);font-weight:600;font-size:14px;margin-top:8px}
+
+.chat{background:var(--chat1);background-image:linear-gradient(180deg,var(--chat1),var(--chat2))}
+.chatbar{display:flex;align-items:center;gap:9px;padding:11px 13px;background:var(--card);border-bottom:1px solid var(--line)}
+.chatbar b{font-size:13.5px;font-weight:600}
+.chatbar small{display:block;font-size:10.5px;color:var(--ink3)}
+.chatbody{flex:1;overflow-y:auto;padding:14px 12px}
+.daystamp{text-align:center;margin-bottom:12px}
+.daystamp span{background:rgba(0,0,0,.18);color:#fff;font-size:10.5px;padding:2px 12px;border-radius:999px}
+.bubble{background:var(--card);border-radius:4px 14px 14px 14px;padding:11px 13px;font-size:13.5px;max-width:84%;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.richmenu{margin-top:auto;background:var(--card);border-top:1px solid var(--line)}
+.rmgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line)}
+.rm{background:linear-gradient(170deg,#2fc7a0,#12a07a);color:#fff;padding:16px 8px;text-align:center;font-size:11.5px;font-weight:600;line-height:1.3}
+.rm.hot{background:linear-gradient(170deg,#0f9b74,#0a6e52);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+.rm small{display:block;font-size:17px;margin-bottom:3px;font-family:"Noto Serif Thai",serif}
+.rmbar{display:flex;align-items:center;justify-content:center;padding:9px;font-size:12px;color:var(--ink3);border-top:1px solid var(--line)}
+
+.flex{background:var(--card);border-radius:14px;overflow:hidden;max-width:86%;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.flexhead{background:var(--acc);color:#fff;padding:11px 14px}
+.flexhead small{font-size:10.5px;opacity:.85;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.flexhead b{display:block;font-size:15px;font-weight:600}
+.flexq{display:flex;align-items:center;gap:13px;padding:14px;border-bottom:1px dashed var(--line)}
+.flexq .no{font-family:"Noto Serif Thai",serif;font-size:32px;font-weight:700;color:var(--brand2);line-height:1;font-variant-numeric:tabular-nums}
+.flexq .no small{display:block;font-size:10px;letter-spacing:.1em;color:var(--ink3);font-family:"Sarabun",sans-serif;font-weight:600;margin-bottom:2px}
+.qr{width:62px;height:62px;margin-left:auto;background:#fff;border-radius:7px;padding:4px;flex:0 0 auto;border:1px solid var(--line)}
+.flexrows{padding:11px 14px;display:flex;flex-direction:column;gap:5px}
+.flexrows .r{display:flex;justify-content:space-between;gap:10px;font-size:12.5px}
+.flexrows .r span{color:var(--ink3)}
+.flexrows .r b{font-weight:600;text-align:right}
+.flexnote{padding:0 14px 11px;font-size:11px;color:var(--ink3)}
+.flexbtns{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-top:1px solid var(--line)}
+.flexbtns button{background:var(--card);padding:10px;font-size:12.5px;font-weight:600;color:var(--acc)}
+.flexbtns button.warn{color:var(--crit)}
+
+.staffhead{padding:14px 16px;border-bottom:1px solid var(--line)}
+.staffhead h3{font-size:16px}
+.staffhead p{font-size:11.5px;color:var(--ink3)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.tile{background:var(--card2);border-radius:10px;padding:8px 6px;text-align:center}
+.tile b{display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.tile small{font-size:10px;color:var(--ink3)}
+.filters{display:flex;gap:6px;padding:11px 16px 9px}
+.filters button{font-size:12px;font-weight:600;padding:4px 12px;border-radius:999px;background:var(--sunk);color:var(--ink3)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.qlist{display:flex;flex-direction:column}
+.qrow{display:flex;align-items:center;gap:11px;padding:11px 16px;border-top:1px solid var(--line)}
+.qrow .time{font-size:11.5px;color:var(--ink3);font-variant-numeric:tabular-nums;width:40px;flex:0 0 auto}
+.qrow .code{font-family:"Noto Serif Thai",serif;font-weight:700;font-size:13px;color:var(--acc);width:44px;flex:0 0 auto}
+.qrow .who b{display:block;font-size:13.5px;font-weight:600;line-height:1.3}
+.qrow .who small{font-size:11px;color:var(--ink3)}
+.qrow .act{margin-left:auto;flex:0 0 auto}
+.chip{font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.chip.wait{background:var(--goldsoft);color:var(--gold)}
+.chip.in{background:var(--brandsoft);color:var(--brand)}
+.chip.no{background:var(--busy-bg);color:var(--busy-ink)}
+.callbtn{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:8px;background:var(--acc);color:#fff}
+
+.notes{display:flex;flex-direction:column;gap:18px;position:sticky;top:24px}
+@media (max-width:880px){.notes{position:static}}
+.note{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.note h3{font-size:17px;margin-bottom:8px}
+.note p{color:var(--ink2);font-size:14px}
+.note ul{margin:10px 0 0;padding-left:18px;color:var(--ink2);font-size:13.5px}
+.note li{margin-bottom:5px}
+.note li::marker{color:var(--acc)}
+.vs{border-left:3px solid var(--brand);background:var(--brandsoft);border-radius:0 var(--radius) var(--radius) 0;padding:13px 16px;margin-top:14px}
+.vs small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--brand2);margin-bottom:3px}
+.vs p{font-size:13px;color:var(--ink2)}
+.hint{font-size:12px;color:var(--ink3);margin-top:12px;text-align:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="pagehead">
+    <p class="eyebrow">ตัวอย่างหน้าจอ · LIFF ในแอป LINE</p>
+    <h1>จองคิวรับบริการ รพ.สต.บ้านหนองครกใต้</h1>
+    <p class="lede">แยกหมวดหมู่ตั้งแต่หน้าแรก — เลือกแผนกก่อน แล้วจึงเห็นเฉพาะบริการ วันเปิดทำการ และช่วงเวลาของแผนกนั้น ไม่ปนกันเหมือนฟอร์มเดียวจบ · กดในหน้าจอเพื่อลองใช้ได้เลย</p>
+  </header>
+
+  <div class="stage">
+    <div>
+      <nav class="steps" id="steps"></nav>
+      <div class="phone" id="phone" data-dept="tm">
+        <div class="liffbar" id="liffbar">
+          <div class="x">✕</div>
+          <div class="t">จองคิวรับบริการ<span>รพ.สต.บ้านหนองครกใต้</span></div>
+        </div>
+        <div class="stack" id="stack">
+
+          <!-- 0 · แชท + ริชเมนู -->
+          <section class="screen chat" id="s0" hidden>
+            <div class="chatbar">
+              <div class="avatar" style="width:32px;height:32px;font-size:12px">รพ</div>
+              <div><b>รพ.สต.บ้านหนองครกใต้</b><small>ตอบกลับอัตโนมัติ</small></div>
+            </div>
+            <div class="chatbody">
+              <div class="daystamp"><span>วันนี้</span></div>
+              <div class="bubble">สวัสดี คุณ iso<br>นี่คือบัญชีทางการของ รพ.สต.บ้านหนองครกใต้<br><br>ต้องการจองคิวรับบริการ กดปุ่ม <b>จองคิวรับบริการ</b> ที่เมนูด้านล่างได้เลย</div>
+            </div>
+            <div class="richmenu">
+              <div class="rmgrid">
+                <button class="rm hot" data-go="1"><small>๑</small>จองคิว<br>รับบริการ</button>
+                <button class="rm"><small>๒</small>ข่าว<br>ประชาสัมพันธ์</button>
+                <button class="rm"><small>๓</small>ติดต่อ<br>เจ้าหน้าที่</button>
+              </div>
+              <div class="rmbar">เมนู ▾</div>
+            </div>
+          </section>
+
+          <!-- 1 · เลือกแผนก -->
+          <section class="screen" id="s1" hidden>
+            <div class="sbody">
+              <div class="hi">
+                <div class="avatar">iso</div>
+                <div><b>สวัสดี คุณ iso</b><small>เข้าสู่ระบบด้วยบัญชี LINE แล้ว</small></div>
+              </div>
+              <h2 class="qhead">ต้องการรับบริการแผนกใด</h2>
+              <p class="qsub">เลือก 1 แผนก ระบบจะแสดงเฉพาะบริการและเวลาของแผนกนั้น</p>
+              <div class="deptgrid" id="deptgrid"></div>
+            </div>
+          </section>
+
+          <!-- 2 · เลือกบริการ -->
+          <section class="screen" id="s2" hidden>
+            <div class="sbody">
+              <div class="crumb"><span class="pill"><span class="tag" id="c2tag"></span> <span id="c2name"></span></span><button data-go="1">เปลี่ยนแผนก</button></div>
+              <h2 class="qhead">ต้องการรับบริการอะไร</h2>
+              <p class="qsub" id="c2sub"></p>
+              <div class="list" id="svclist"></div>
+            </div>
+            <div class="sfoot"><button class="cta" id="btn2" disabled data-go="3">ถัดไป · เลือกวันและเวลา</button></div>
+          </section>
+
+          <!-- 3 · วัน-เวลา -->
+          <section class="screen" id="s3" hidden>
+            <div class="sbody">
+              <div class="crumb"><span class="pill"><span class="tag" id="c3tag"></span> <span id="c3name"></span></span><button data-go="2">แก้ไข</button></div>
+              <p class="label">เลือกวัน</p>
+              <div class="dayrow" id="dayrow"></div>
+              <p class="qsub" id="dayhint" style="margin-top:8px"></p>
+              <p class="label">เลือกช่วงเวลา</p>
+              <div class="slots" id="slots"></div>
+            </div>
+            <div class="sfoot"><button class="cta" id="btn3" disabled data-go="4">ถัดไป · กรอกข้อมูล</button></div>
+          </section>
+
+          <!-- 4 · ข้อมูล + ยืนยัน -->
+          <section class="screen" id="s4" hidden>
+            <div class="sbody">
+              <div class="sum" id="sum"></div>
+              <div class="prefill">บันทึกไว้จากการจองครั้งก่อน · แก้ไขได้</div>
+              <div class="field"><label for="f-name">ชื่อ–นามสกุล <i>*</i></label><input id="f-name" value="สมหญิง ศรีสะอาด"></div>
+              <div class="field"><label for="f-id">เลขบัตรประชาชน <i>*</i></label><input id="f-id" inputmode="numeric" value="3 3301 00••• •• •"><p class="help">แสดงบางส่วนเพื่อความปลอดภัย · กรอกครั้งแรกครั้งเดียว</p></div>
+              <div class="field"><label for="f-tel">เบอร์โทรศัพท์ <i>*</i></label><input id="f-tel" inputmode="tel" value="081-234-5678"></div>
+              <div class="field"><label for="f-right">สิทธิการรักษา <i>*</i></label>
+                <select id="f-right"><option>บัตรทอง (UC)</option><option>ข้าราชการ</option><option>ประกันสังคม</option><option>ชำระเงินเอง</option><option>อื่น ๆ</option></select></div>
+              <div class="field"><label for="f-note">อาการ / รายละเอียดเพิ่มเติม</label><textarea id="f-note" rows="3" placeholder="เช่น ปวดเข่าซ้ายมา 2 สัปดาห์"></textarea></div>
+              <label class="consent" for="f-pdpa"><input type="checkbox" id="f-pdpa"><span>ยินยอมให้ รพ.สต.บ้านหนองครกใต้ เก็บและใช้ข้อมูลส่วนบุคคลเพื่อการนัดหมายและการรักษา ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล</span></label>
+            </div>
+            <div class="sfoot"><button class="cta" id="btn4" disabled data-go="5">ยืนยันการจองคิว</button></div>
+          </section>
+
+          <!-- 5 · บัตรคิวในแชท -->
+          <section class="screen chat" id="s5" hidden>
+            <div class="chatbar">
+              <div class="avatar" style="width:32px;height:32px;font-size:12px">รพ</div>
+              <div><b>รพ.สต.บ้านหนองครกใต้</b><small>ตอบกลับอัตโนมัติ</small></div>
+            </div>
+            <div class="chatbody">
+              <div class="daystamp"><span>วันนี้</span></div>
+              <div class="bubble" style="margin-bottom:10px">จองคิวสำเร็จแล้ว เก็บบัตรคิวนี้ไว้และแสดงต่อเจ้าหน้าที่เมื่อมาถึงนะคะ</div>
+              <div class="flex" id="ticket"></div>
+            </div>
+          </section>
+
+          <!-- 6 · หน้าเจ้าหน้าที่ -->
+          <section class="screen" id="s6" hidden>
+            <div class="staffhead">
+              <h3>คิววันนี้</h3>
+              <p id="staffdate"></p>
+              <div class="tiles">
+                <div class="tile"><b>17</b><small>จองแล้ว</small></div>
+                <div class="tile"><b>6</b><small>เช็คอิน</small></div>
+                <div class="tile"><b>9</b><small>รอเรียก</small></div>
+                <div class="tile"><b>2</b><small>ไม่มา</small></div>
+              </div>
+            </div>
+            <div class="filters" id="filters">
+              <button data-f="all" aria-pressed="true">ทั้งหมด</button>
+              <button data-f="tm" aria-pressed="false">แผนไทย</button>
+              <button data-f="dn" aria-pressed="false">ทันตกรรม</button>
+            </div>
+            <div class="sbody" style="padding:0"><div class="qlist" id="qlist"></div></div>
+          </section>
+
+        </div>
+      </div>
+      <p class="hint">แตะปุ่มในหน้าจอ หรือใช้แถบขั้นตอนด้านบนเพื่อข้ามไปดูหน้าอื่น</p>
+    </div>
+
+    <aside class="notes">
+      <div class="note" id="note"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+var DEPTS={
+ tm:{id:'tm',name:'แพทย์แผนไทย',tag:'ท',blurb:'นวด ประคบ พอก อบสมุนไพร',days:[1,2,3,4,5],dayTxt:'จันทร์–ศุกร์',
+   slots:['09:00–10:00','10:00–11:00','11:00–12:00','13:30–14:30','15:00–16:00'],
+   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c0-8.5 6.2-14.5 16.5-15.5C21 15 14.5 20.5 4 20z"/><path d="M4.5 19.5c4-4.5 8-7.5 12.5-10"/></svg>',
+   svcs:['ตรวจ / ประเมินอาการแพทย์แผนไทย','นวดไทย','ประคบสมุนไพร','พอกเข่า','อบสมุนไพร','รับยาสมุนไพร','ปรึกษาด้านสมุนไพร','ติดตามผลการรักษา']},
+ dn:{id:'dn',name:'ทันตกรรม',tag:'ฟ',blurb:'ตรวจฟัน ขูดหินปูน อุด ถอน',days:[2,4,5],dayTxt:'อังคาร · พฤหัสบดี · ศุกร์',
+   slots:['09:00–10:00','10:00–11:00','11:00–12:00','14:00–15:00','15:00–16:00'],
+   icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.2C5 3.2 3.6 5 3.6 7.6c0 3.4 1 4.6 1.7 8 .5 2.6 1 5.2 2.3 5.2 1.2 0 1.5-2.2 1.9-4.4.3-1.6.6-2.4 1.5-2.4s1.2.8 1.5 2.4c.4 2.2.7 4.4 1.9 4.4 1.3 0 1.8-2.6 2.3-5.2.7-3.4 1.7-4.6 1.7-8 0-2.6-1.4-4.4-3.9-4.4-1.6 0-2.4.8-3.5.8s-1.9-.8-3.5-.8z"/></svg>',
+   svcs:['ตรวจสุขภาพช่องปาก','ขูดหินปูน','อุดฟัน','ถอนฟัน','เคลือบฟลูออไรด์','ตรวจ / รักษาอาการปวดฟัน','นัดติดตามการรักษา']}
+};
+var DAY_S=['อา','จ','อ','พ','พฤ','ศ','ส'];
+var DAY_L=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+var MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+var NOTES=[
+ {t:'จุดเริ่มต้น: ริชเมนู',p:'ปุ่ม “จองคิวรับบริการ” ในริชเมนูผูกกับ LIFF ไม่ใช่ลิงก์ฟอร์ม — แตะแล้วหน้าจองเปิดทับในแอป LINE ทันที ไม่เด้งออกเบราว์เซอร์ และไม่ต้องล็อกอิน Google',l:['ระบบรู้ทันทีว่าใครเป็นคนจอง จากบัญชี LINE','ส่งบัตรคิวและข้อความเตือนกลับเข้าแชทคนนั้นได้']},
+ {t:'ขั้นที่ 1 — เลือกแผนก',p:'นี่คือจุดที่แก้ปัญหา “ปนกัน” ทั้งหมด หน้าแรกถามอย่างเดียวว่าจะไปแผนกไหน แล้วทุกหน้าถัดไปจะกรองตามแผนกที่เลือก',l:['คนจองฟันไม่ต้องเลื่อนผ่านรายการนวด/ประคบ/พอกเข่า','เพิ่มแผนกใหม่ภายหลังได้ โดยไม่ทำให้หน้าอื่นยาวขึ้น','สีและอักษรหัวคิวต่างกันต่อแผนก (ท / ฟ) เห็นปุ๊บรู้ปั๊บ']},
+ {t:'ขั้นที่ 2 — เลือกบริการ',p:'แสดงเฉพาะบริการของแผนกที่เลือก เลือกได้ทีละ 1 อย่าง เพราะ 1 คิว = 1 บริการ เจ้าหน้าที่จึงรู้ล่วงหน้าว่าต้องเตรียมอะไร',l:['ฟอร์มเดิมมีทั้ง 2 ชุดอยู่หน้าเดียว ติ๊กผิดชุดได้','ที่นี่ติ๊กผิดชุดไม่ได้เลย']},
+ {t:'ขั้นที่ 3 — วันและเวลา',p:'วันเปิดทำการและช่วงเวลาดึงมาจากแผนกที่เลือก ไม่ใช่รายการรวม และแต่ละช่องบอกที่ว่างจริง',l:['ทันตกรรมเปิด อ. · พฤ. · ศ. วันอื่นกดไม่ได้ (กันจองผิดวัน)','แผนไทยพัก 12:00–13:30 ทันตกรรมพัก 12:00–14:00','ไม่จำกัดจำนวนคิว แต่บอกให้เห็นว่าช่วงไหนคนเยอะ ผู้รับบริการเลี่ยงเองได้']},
+ {t:'ขั้นที่ 4 — ข้อมูลและ PDPA',p:'มาอยู่ท้ายสุด เพราะคนจองครั้งที่ 2 ขึ้นไปจะถูกเติมให้อัตโนมัติจากบัญชี LINE เดิม เหลือแค่กดยืนยัน',l:['เลขบัตรประชาชนเก็บครั้งเดียว แสดงผลแบบปิดบังบางส่วน','คำยินยอม PDPA ติ๊กครั้งแรกครั้งเดียว','ด้านบนสรุปให้ตรวจก่อนกดยืนยัน แก้ย้อนได้ทุกขั้น']},
+ {t:'ขั้นที่ 5 — บัตรคิวเข้าแชท',p:'จองเสร็จหน้าปิดเอง แล้วบัตรคิวเด้งเข้าแชท LINE เก็บถาวรในห้องแชท ไม่ต้องจำ ไม่ต้องแคปหน้าจอ',l:['QR สำหรับเจ้าหน้าที่สแกนเช็คอินหน้างาน','ปุ่มเลื่อนนัด / ยกเลิกคิว ในบัตรเลย','ระบบเตือนซ้ำอัตโนมัติ 19:00 ของวันก่อนนัด — ลดคนผิดนัด']},
+ {t:'ฝั่งเจ้าหน้าที่',p:'ส่วนที่ฟอร์มเดิมไม่มี เปิดดูตอนเช้าเห็นคิวทั้งวันเรียงตามเวลา กรองตามแผนกได้ กด “เรียก” แล้วคนไข้ได้ข้อความในไลน์ทันที',l:['กรองเฉพาะทันตกรรม ให้หมอฟันดูของตัวเอง','กดเช็คอิน / ไม่มาตามนัด เก็บสถิติได้','เพิ่มคิว walk-in และปิดวันหยุดได้จากหน้านี้']}
+];
+function hash(s){var h=7;for(var i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h}
+function thDate(d,full){var y=d.getFullYear()+543;return (full?DAY_L[d.getDay()]+'ที่ ':'')+d.getDate()+' '+MON[d.getMonth()]+' '+y}
+
+var st={dept:'tm',svc:null,date:null,slot:null,step:0,filter:'all'};
+var stack=document.getElementById('stack');
+var phone=document.getElementById('phone');
+var screens=[0,1,2,3,4,5,6].map(function(i){return document.getElementById('s'+i)});
+var STEPNAMES=['แชท','แผนก','บริการ','วัน–เวลา','ข้อมูล','บัตรคิว','เจ้าหน้าที่'];
+
+var stepsEl=document.getElementById('steps');
+STEPNAMES.forEach(function(n,i){
+  var b=document.createElement('button');b.textContent=(i+1)+'. '+n;b.onclick=function(){go(i)};stepsEl.appendChild(b);
+});
+
+function go(i){
+  st.step=i;
+  screens.forEach(function(s,j){s.hidden=j!==i});
+  Array.prototype.forEach.call(stepsEl.children,function(b,j){b.setAttribute('aria-current',j===i?'true':'false')});
+  document.getElementById('liffbar').hidden=(i===0||i===5);
+  var n=NOTES[i];
+  document.getElementById('note').innerHTML='<h3>'+n.t+'</h3><p>'+n.p+'</p><ul>'+n.l.map(function(x){return '<li>'+x+'</li>'}).join('')+'</ul>'+
+    (i===1?'<div class="vs"><small>เทียบกับฟอร์มเดิม</small><p>ฟอร์มเดิมถามข้อมูลส่วนตัว 4 ข้อก่อน แล้วค่อยให้เลือกแผนกในข้อ 5 คนกรอกไปครึ่งฟอร์มแล้วถึงรู้ว่าแผนกที่ต้องการไม่เปิดวันนั้น</p></div>':'')+
+    (i===3?'<div class="vs"><small>เทียบกับฟอร์มเดิม</small><p>ฟอร์มเดิมรวมเวลาของทั้งสองแผนกไว้ข้อเดียว (5 ช่วง) ทั้งที่ทันตกรรมเปิด 14:00–15:00 ส่วนแผนไทยเปิด 13:30–14:30 จองผิดช่วงได้ทันที</p></div>':'');
+  if(i===2)renderSvc(); if(i===3)renderDay(); if(i===4)renderSum(); if(i===5)renderTicket(); if(i===6)renderStaff();
+}
+
+/* แผนก */
+var dg=document.getElementById('deptgrid');
+Object.keys(DEPTS).forEach(function(k){
+  var d=DEPTS[k];
+  var b=document.createElement('button');
+  b.className='deptcard';b.setAttribute('data-dept',k);
+  b.innerHTML='<span class="ic">'+d.icon+'</span><span><b>'+d.name+'</b><small>'+d.blurb+'</small><span class="opendays">เปิด '+d.dayTxt+'</span></span><span class="go">›</span>';
+  b.onclick=function(){st.dept=k;st.svc=null;st.date=null;st.slot=null;phone.setAttribute('data-dept',k);go(2)};
+  dg.appendChild(b);
+});
+
+function renderSvc(){
+  var d=DEPTS[st.dept];
+  document.getElementById('c2tag').textContent=d.tag;
+  document.getElementById('c2name').textContent=d.name;
+  document.getElementById('c2sub').textContent='เลือก 1 บริการ · เฉพาะของแผนก'+d.name;
+  var L=document.getElementById('svclist');L.innerHTML='';
+  d.svcs.forEach(function(s){
+    var b=document.createElement('button');b.className='opt';b.setAttribute('aria-pressed',st.svc===s?'true':'false');
+    b.innerHTML='<span class="dot"></span><span>'+s+'</span>';
+    b.onclick=function(){st.svc=s;renderSvc();document.getElementById('btn2').disabled=false};
+    L.appendChild(b);
+  });
+  document.getElementById('btn2').disabled=!st.svc;
+}
+
+function renderDay(){
+  var d=DEPTS[st.dept];
+  document.getElementById('c3tag').textContent=d.tag;
+  document.getElementById('c3name').textContent=d.name+' · '+(st.svc||'');
+  document.getElementById('dayhint').textContent='แผนก'+d.name+'เปิดให้บริการ '+d.dayTxt+' · วันอื่นจะกดไม่ได้';
+  var row=document.getElementById('dayrow');row.innerHTML='';
+  var t=new Date();t.setHours(0,0,0,0);
+  for(var i=1;i<=14;i++){
+    var dt=new Date(t.getTime()+i*864e5);
+    var ok=d.days.indexOf(dt.getDay())>-1;
+    if(!st.date&&ok)st.date=dt.toISOString().slice(0,10);
+    var b=document.createElement('button');b.className='day';b.disabled=!ok;
+    b.setAttribute('aria-pressed',st.date===dt.toISOString().slice(0,10)?'true':'false');
+    b.innerHTML='<small>'+DAY_S[dt.getDay()]+'</small><b>'+dt.getDate()+'</b><em>'+(ok?MON[dt.getMonth()]:'ปิด')+'</em>';
+    (function(key){b.onclick=function(){st.date=key;st.slot=null;renderDay()}})(dt.toISOString().slice(0,10));
+    row.appendChild(b);
+  }
+  var S=document.getElementById('slots');S.innerHTML='';
+  d.slots.forEach(function(sl,idx){
+    if(idx===3){var g=document.createElement('div');g.className='mealgap';g.textContent='พักกลางวัน';S.appendChild(g)}
+    var booked=[0,1,2,3,6,4,2][hash(st.dept+st.date+sl)%7];
+    var b=document.createElement('button');b.className='slot';
+    b.setAttribute('aria-pressed',st.slot===sl?'true':'false');
+    b.innerHTML='<b>'+sl+'</b><small>'+(booked===0?'ยังไม่มีคนจอง':'จองแล้ว '+booked+' คน')+'</small>';
+    b.onclick=function(){st.slot=sl;renderDay();document.getElementById('btn3').disabled=false};
+    S.appendChild(b);
+  });
+  document.getElementById('btn3').disabled=!st.slot;
+}
+
+function renderSum(){
+  var d=DEPTS[st.dept],dt=new Date(st.date+'T00:00:00');
+  document.getElementById('sum').innerHTML=
+    '<div class="row"><span>แผนก</span><b>'+d.name+'</b></div>'+
+    '<div class="row"><span>บริการ</span><b>'+st.svc+'</b></div>'+
+    '<div class="row"><span>วันที่</span><b>'+thDate(dt,true)+'</b></div>'+
+    '<div class="row"><span>เวลา</span><b>'+st.slot+' น.</b></div>'+
+    '<button class="edit" onclick="go(3)">แก้ไขวันเวลา</button>';
+}
+function qr(seed){
+  var n=21,s='';var h=hash(seed);
+  for(var y=0;y<n;y++)for(var x=0;x<n;x++){
+    var fin=(x<7&&y<7)||(x>n-8&&y<7)||(x<7&&y>n-8);
+    var on=fin?((x===0||x===6||y===0||y===6||(x>1&&x<5&&y>1&&y<5))&&!((x>6)||(y>6))):false;
+    if(fin){ var lx=x>n-8?x-(n-7):x, ly=y>n-8?y-(n-7):y;
+      on=(lx===0||lx===6||ly===0||ly===6||(lx>1&&lx<5&&ly>1&&ly<5)); }
+    else { h=(h*1103515245+12345)>>>0; on=((h>>>16)&3)>0 && ((h>>>18)&1)===1; }
+    if(on)s+='<rect x="'+x+'" y="'+y+'" width="1" height="1"/>';
+  }
+  return '<svg class="qr" viewBox="-1 -1 23 23" fill="#11302a">'+s+'</svg>';
+}
+function renderTicket(){
+  var d=DEPTS[st.dept],dt=new Date(st.date+'T00:00:00');
+  var no=d.tag+'-'+String(hash(st.dept+st.date+st.slot)%40+7).padStart(3,'0');
+  document.getElementById('ticket').innerHTML=
+    '<div class="flexhead"><small>บัตรคิวออนไลน์</small><b>'+d.name+'</b></div>'+
+    '<div class="flexq"><div class="no"><small>หมายเลขคิว</small>'+no+'</div>'+qr(no+st.date)+'</div>'+
+    '<div class="flexrows">'+
+      '<div class="r"><span>บริการ</span><b>'+st.svc+'</b></div>'+
+      '<div class="r"><span>วันที่</span><b>'+thDate(dt,true)+'</b></div>'+
+      '<div class="r"><span>เวลา</span><b>'+st.slot+' น.</b></div>'+
+      '<div class="r"><span>ผู้รับบริการ</span><b>สมหญิง ศรีสะอาด</b></div>'+
+      '<div class="r"><span>สิทธิ</span><b>บัตรทอง (UC)</b></div>'+
+    '</div>'+
+    '<p class="flexnote">กรุณามาถึงก่อนเวลานัด 15 นาที และแสดงบัตรคิวนี้ต่อเจ้าหน้าที่</p>'+
+    '<div class="flexbtns"><button>เลื่อนนัด</button><button class="warn">ยกเลิกคิว</button></div>';
+}
+var ROWS=[
+ {t:'09:00',d:'tm',c:'ท-012',n:'บุญมี ทองใบ',s:'นวดไทย',st:'in'},
+ {t:'09:00',d:'dn',c:'ฟ-003',n:'ณัฐพล ศรีมงคล',s:'ขูดหินปูน',st:'in'},
+ {t:'10:00',d:'tm',c:'ท-013',n:'สมหญิง ศรีสะอาด',s:'พอกเข่า',st:'wait',call:true},
+ {t:'10:00',d:'dn',c:'ฟ-004',n:'กนกวรรณ ใจดี',s:'อุดฟัน',st:'wait'},
+ {t:'10:00',d:'tm',c:'ท-014',n:'ประยูร แก้วมณี',s:'ประคบสมุนไพร',st:'no'},
+ {t:'11:00',d:'tm',c:'ท-015',n:'วิไล พันธ์ดี',s:'อบสมุนไพร',st:'wait'},
+ {t:'11:00',d:'dn',c:'ฟ-005',n:'ธีรศักดิ์ นามวงศ์',s:'ถอนฟัน',st:'wait'},
+ {t:'13:30',d:'tm',c:'ท-016',n:'สุนีย์ บุญเรือง',s:'รับยาสมุนไพร',st:'wait'},
+ {t:'14:00',d:'dn',c:'ฟ-006',n:'ด.ช.ภูมิ รักเรียน',s:'เคลือบฟลูออไรด์',st:'wait'},
+ {t:'15:00',d:'tm',c:'ท-017',n:'อำนวย ชัยสิทธิ์',s:'ติดตามผลการรักษา',st:'wait'}
+];
+var CHIP={in:['เช็คอินแล้ว','in'],wait:['รอเรียก','wait'],no:['ไม่มาตามนัด','no']};
+function renderStaff(){
+  var t=new Date();
+  document.getElementById('staffdate').textContent=thDate(t,true)+' · รพ.สต.บ้านหนองครกใต้';
+  var L=document.getElementById('qlist');L.innerHTML='';
+  ROWS.filter(function(r){return st.filter==='all'||r.d===st.filter}).forEach(function(r){
+    var el=document.createElement('div');el.className='qrow';el.setAttribute('data-dept',r.d);
+    el.innerHTML='<span class="time">'+r.t+'</span><span class="code">'+r.c+'</span>'+
+      '<span class="who"><b>'+r.n+'</b><small>'+DEPTS[r.d].name+' · '+r.s+'</small></span>'+
+      '<span class="act">'+(r.call?'<button class="callbtn">เรียกคิว</button>':'<span class="chip '+CHIP[r.st][1]+'">'+CHIP[r.st][0]+'</span>')+'</span>';
+    L.appendChild(el);
+  });
+}
+document.getElementById('filters').onclick=function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  st.filter=b.getAttribute('data-f');
+  Array.prototype.forEach.call(this.children,function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});
+  renderStaff();
+};
+document.getElementById('f-pdpa').onchange=function(){document.getElementById('btn4').disabled=!this.checked};
+stack.addEventListener('click',function(e){
+  var b=e.target.closest('[data-go]'); if(!b)return;
+  go(parseInt(b.getAttribute('data-go'),10));
+});
+go(1);
+</script>
