@@ -131,13 +131,31 @@ var ICON = {
 var $ = function (id) { return document.getElementById(id); };
 var app = $('app');
 var st = { step: 0, dept: null, svc: null, date: null, slot: null,
-           profile: null, patient: null, counts: {}, idToken: null, last: null };
+           profile: null, patient: null, counts: {}, countsLoaded: false, idToken: null, last: null };
 
 /* ---------- ยูทิลิตี้ ---------- */
-function ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+/* ---- วันเวลาอ้างอิงเขตเวลาไทยเสมอ ไม่ขึ้นกับการตั้งค่าเครื่องผู้ใช้ ---- */
+function bkkNow(){
+  var g = {};
+  try {
+    new Intl.DateTimeFormat('en-GB', { timeZone:'Asia/Bangkok', year:'numeric', month:'2-digit',
+      day:'2-digit', hour:'2-digit', minute:'2-digit', hourCycle:'h23' })
+      .formatToParts(new Date()).forEach(function(x){ g[x.type] = x.value; });
+  } catch (e) {
+    var d = new Date();
+    g = { year:d.getFullYear(), month:('0'+(d.getMonth()+1)).slice(-2), day:('0'+d.getDate()).slice(-2),
+          hour:d.getHours(), minute:d.getMinutes() };
+  }
+  return { date: g.year+'-'+g.month+'-'+g.day, min: (+g.hour % 24) * 60 + (+g.minute) };
+}
+/* คำนวณด้วย UTC ล้วน เดือน/ปีจึงข้ามได้ถูกต้องโดยไม่เพี้ยนตามเขตเวลา */
+function dObj(s){ var p = s.split('-'); return new Date(Date.UTC(+p[0], +p[1]-1, +p[2])); }
+function addDays(s, n){ var d = dObj(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0,10); }
+function dow(s){ return dObj(s).getUTCDay(); }
+function slotStart(sl){ var t = sl.split('–')[0].split(':'); return (+t[0]) * 60 + (+t[1]); }
 function thDate(s, full){
-  var p = s.split('-'), d = new Date(+p[0], +p[1]-1, +p[2]);
-  return (full ? DAY_L[d.getDay()]+'ที่ ' : '') + d.getDate() + ' ' + MON[d.getMonth()] + ' ' + (d.getFullYear()+543);
+  var d = dObj(s);
+  return (full ? DAY_L[d.getUTCDay()]+'ที่ ' : '') + d.getUTCDate() + ' ' + MON[d.getUTCMonth()] + ' ' + (d.getUTCFullYear()+543);
 }
 function digits(s){ return (s||'').replace(/\D/g,''); }
 function validThaiId(s){
@@ -220,7 +238,7 @@ function renderDepts(){
     b.innerHTML = '<span class="ic">' + (ICON[k]||'') + '</span><span><b>' + d.name + '</b><small>' + d.blurb +
       '</small><span class="opendays">เปิด ' + d.dayTxt + '</span></span><span class="go">›</span>';
     b.onclick = function(){
-      st.dept = k; st.svc = null; st.date = null; st.slot = null; st.counts = {};
+      st.dept = k; st.svc = null; st.date = null; st.slot = null; st.counts = {}; st.countsLoaded = false;
       app.setAttribute('data-dept', k); renderSvc(); go(2);
     };
     g.appendChild(b);
@@ -246,41 +264,64 @@ $('btn2').onclick = function(){ go(3); };
 
 /* ---------- 3 · วัน–เวลา ---------- */
 function loadCounts(){
-  renderDays(); renderSlots(true);
+  renderDays(); renderSlots();
   api({ action:'counts', dept: st.dept }).then(function(j){
-    st.counts = j.counts || {}; renderSlots(false);
-  }).catch(function(){ st.counts = {}; renderSlots(false); });
+    st.counts = j.counts || {}; st.countsLoaded = true; renderSlots();
+  }).catch(function(){ st.counts = {}; st.countsLoaded = true; renderSlots(); });
+}
+function dayOpen(key, now){
+  var d = D[st.dept];
+  if (d.days.indexOf(dow(key)) < 0) return false;
+  if (C.HOLIDAYS.indexOf(key) > -1) return false;
+  if (key === now.date){                       /* วันนี้เปิดต่อเมื่อยังมีช่วงเวลาเหลือ */
+    if (!C.ALLOW_SAME_DAY) return false;
+    return d.slots.some(function(sl){ return slotStart(sl) > now.min; });
+  }
+  return true;
 }
 function renderDays(){
-  var d = D[st.dept];
+  var d = D[st.dept], now = bkkNow();
   $('c3tag').textContent = d.tag;
   $('c3name').textContent = d.name + ' · ' + st.svc;
-  $('dayhint').textContent = 'แผนก' + d.name + 'เปิดให้บริการ ' + d.dayTxt;
+  $('dayhint').textContent = 'แผนก' + d.name + 'เปิดให้บริการ ' + d.dayTxt +
+    (C.ALLOW_SAME_DAY ? ' · จองวันนี้ได้ถ้ายังไม่เลยเวลา' : '');
+
   var row = $('dayrow'); row.innerHTML = '';
-  var t = new Date(); t.setHours(0,0,0,0);
-  for (var i=1;i<=C.BOOK_AHEAD_DAYS;i++){
-    var dt = new Date(t.getTime()+i*864e5), key = ymd(dt);
-    var open = d.days.indexOf(dt.getDay()) > -1 && C.HOLIDAYS.indexOf(key) < 0;
-    if (open && !st.date) st.date = key;
+  var first = null, valid = false;
+  for (var i = 0; i <= C.BOOK_AHEAD_DAYS; i++){
+    var key = addDays(now.date, i), open = dayOpen(key, now), dd = dObj(key);
+    if (open && !first) first = key;
+    if (open && key === st.date) valid = true;
     var b = document.createElement('button');
     b.className = 'day'; b.disabled = !open;
-    b.setAttribute('aria-pressed', st.date === key ? 'true' : 'false');
-    b.innerHTML = '<small>' + DAY_S[dt.getDay()] + '</small><b>' + dt.getDate() + '</b><em>' +
-                  (open ? MON[dt.getMonth()] : 'ปิด') + '</em>';
-    (function(k){ b.onclick = function(){ st.date = k; st.slot = null; renderDays(); renderSlots(false); }; })(key);
+    b.innerHTML = '<small>' + DAY_S[dd.getUTCDay()] + '</small><b>' + dd.getUTCDate() + '</b><em>' +
+      (!open ? 'ปิด' : i === 0 ? 'วันนี้' : MON[dd.getUTCMonth()]) + '</em>';
+    (function(k){ b.onclick = function(){ st.date = k; st.slot = null; renderDays(); renderSlots(); }; })(key);
     row.appendChild(b);
   }
+  if (!valid){ st.date = first; st.slot = null; }
+  Array.prototype.forEach.call(row.children, function(b, i){
+    b.setAttribute('aria-pressed', addDays(now.date, i) === st.date ? 'true' : 'false');
+  });
+  if (!first) $('dayhint').textContent = 'ขณะนี้ยังไม่เปิดให้จองแผนก' + d.name + ' กรุณาติดต่อเจ้าหน้าที่';
 }
-function renderSlots(loading){
-  var d = D[st.dept], S = $('slots'); S.innerHTML = '';
+function renderSlots(){
+  var d = D[st.dept], S = $('slots'), now = bkkNow();
+  S.innerHTML = '';
+  if (!st.date){ $('btn3').disabled = true; return; }
   d.slots.forEach(function(sl, i){
-    if (i === d.breakAfter + 1){ var g = document.createElement('div'); g.className = 'gap'; g.textContent = 'พักกลางวัน'; S.appendChild(g); }
-    var n = st.counts[st.date + '|' + sl];
+    if (i === d.breakAfter + 1){
+      var g = document.createElement('div'); g.className = 'gap'; g.textContent = 'พักกลางวัน'; S.appendChild(g);
+    }
+    var passed = st.date === now.date && slotStart(sl) <= now.min;
+    var n = st.counts[st.date + '|' + sl] || 0;
     var b = document.createElement('button');
-    b.className = 'slot'; b.setAttribute('aria-pressed', st.slot === sl ? 'true' : 'false');
+    b.className = 'slot'; b.disabled = passed;
+    b.setAttribute('aria-pressed', st.slot === sl ? 'true' : 'false');
     b.innerHTML = '<b>' + sl + '</b><small>' +
-      (loading || n === undefined ? '…' : (n === 0 ? 'ยังไม่มีคนจอง' : 'จองแล้ว ' + n + ' คน')) + '</small>';
-    b.onclick = function(){ st.slot = sl; renderSlots(false); };
+      (passed ? 'เลยเวลาแล้ว' : !st.countsLoaded ? 'กำลังตรวจสอบ…' :
+       n === 0 ? 'ยังไม่มีคนจอง' : 'จองแล้ว ' + n + ' คน') + '</small>';
+    b.onclick = function(){ st.slot = sl; renderSlots(); };
     S.appendChild(b);
   });
   $('btn3').disabled = !st.slot;

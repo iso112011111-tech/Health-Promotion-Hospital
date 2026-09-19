@@ -127,6 +127,9 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .slot:hover{border-color:var(--acc)}
 .slot[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:#fff}
 .slot[aria-pressed="true"] small{color:rgba(255,255,255,.85)}
+.slot:disabled{background:var(--sunk);border-color:transparent;color:var(--mute-ink);cursor:not-allowed}
+.slot:disabled small{color:var(--mute-ink)}
+.slot:disabled:hover{border-color:transparent}
 .gap{grid-column:1/-1;display:flex;align-items:center;gap:10px;color:var(--ink3);font-size:11px;margin:4px 0}
 .gap::before,.gap::after{content:"";flex:1;height:1px;background:var(--line)}
 

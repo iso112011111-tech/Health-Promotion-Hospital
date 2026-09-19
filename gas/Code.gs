@@ -23,6 +23,7 @@ var DEPTS = {
 var ORG = 'รพ.สต.บ้านหนองครกใต้';
 var ARRIVE_BEFORE = 15;
 var BOOK_AHEAD_DAYS = 14;
+var ALLOW_SAME_DAY = true;   // ต้องตรงกับ ALLOW_SAME_DAY ใน config.js
 var TZ = 'Asia/Bangkok';
 
 var BOOK_COLS = ['id','createdAt','userId','displayName','dept','service','date','slot','queueNo',
@@ -113,6 +114,21 @@ function staff_(q) {
 
 function ymd_(d) { return Utilities.formatDate(d, TZ, 'yyyy-MM-dd'); }
 function today_() { return ymd_(new Date()); }
+/** นาทีที่ผ่านไปของวันนี้ ตามเวลาประเทศไทย */
+function nowMin_() {
+  return Number(Utilities.formatDate(new Date(), TZ, 'H')) * 60 +
+         Number(Utilities.formatDate(new Date(), TZ, 'm'));
+}
+/** นาทีเริ่มต้นของช่วงเวลา เช่น '13:30–14:30' → 810 */
+function slotStart_(slot) {
+  var t = String(slot).split('–')[0].split(':');
+  return Number(t[0]) * 60 + Number(t[1]);
+}
+/** วันในสัปดาห์จากสตริง yyyy-MM-dd โดยไม่เพี้ยนตามเขตเวลาของสคริปต์ */
+function dow_(s) {
+  var p = String(s).split('-');
+  return new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2]))).getUTCDay();
+}
 function maskId_(n) {
   n = String(n || '');
   return n.length === 13 ? n.slice(0, 4) + ' •••••• ' + n.slice(-2) : '';
@@ -157,11 +173,16 @@ function a_book(q) {
   if (dep.slots.indexOf(q.slot) < 0) throw new Error('ช่วงเวลาไม่ถูกต้อง');
   if (!q.service) throw new Error('ไม่พบบริการที่เลือก');
 
-  var d = new Date(q.date + 'T00:00:00+07:00');
-  if (isNaN(d.getTime())) throw new Error('วันที่ไม่ถูกต้อง');
-  if (dep.days.indexOf(d.getDay()) < 0)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(q.date))) throw new Error('วันที่ไม่ถูกต้อง');
+  if (dep.days.indexOf(dow_(q.date)) < 0)
     throw new Error('แผนก' + dep.name + 'ไม่เปิดให้บริการในวันที่เลือก');
-  if (q.date <= today_()) throw new Error('กรุณาเลือกวันนัดล่วงหน้าอย่างน้อย 1 วัน');
+
+  var todayS = today_();
+  if (q.date < todayS) throw new Error('ไม่สามารถจองย้อนหลังได้');
+  if (q.date === todayS) {
+    if (!ALLOW_SAME_DAY) throw new Error('กรุณาเลือกวันนัดล่วงหน้าอย่างน้อย 1 วัน');
+    if (slotStart_(q.slot) <= nowMin_()) throw new Error('ช่วงเวลาที่เลือกผ่านไปแล้ว กรุณาเลือกช่วงอื่น');
+  }
 
   var max = new Date(); max.setDate(max.getDate() + BOOK_AHEAD_DAYS);
   if (q.date > ymd_(max)) throw new Error('จองล่วงหน้าได้ไม่เกิน ' + BOOK_AHEAD_DAYS + ' วัน');
@@ -314,8 +335,10 @@ function push_(to, messages) {
 function thDate_(s, full) {
   var DAY = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   var MON = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  var p = String(s).split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]);
-  return (full ? DAY[d.getDay()] + 'ที่ ' : '') + d.getDate() + ' ' + MON[d.getMonth()] + ' ' + (d.getFullYear() + 543);
+  var p = String(s).split('-');
+  var d = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+  return (full ? DAY[d.getUTCDay()] + 'ที่ ' : '') + d.getUTCDate() + ' ' +
+         MON[d.getUTCMonth()] + ' ' + (d.getUTCFullYear() + 543);
 }
 
 function pushTicket_(userId, b) {
