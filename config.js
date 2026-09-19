@@ -7,10 +7,9 @@
 window.APP_CONFIG = {
 
   /* --- เชื่อมต่อ ------------------------------------------------- */
-  LIFF_ID: '',          // ได้จาก LINE Developers > LINE Login > LIFF
-  API_URL: '',          // URL ของ Apps Script หลังกด Deploy (ลงท้าย /exec)
-  DEMO: true,           // true = โหมดตัวอย่าง ไม่บันทึกจริง เปิดในเบราว์เซอร์ได้เลย
-                        // เปลี่ยนเป็น false เมื่อกรอก 2 ค่าบนครบแล้ว
+  LIFF_ID: '2011673448-ITjcey7V',          // ได้จาก LINE Developers > LINE Login > LIFF
+  API_URL: 'https://script.google.com/macros/s/AKfycbwDsr9QY33Vo-idaI5NvFMGGG488RS1YJHFsi_8UVQWZmpGDuoctFZTyEKZLpzhr9xZ9Q/exec',          // URL ของ Apps Script หลังกด Deploy (ลงท้าย /exec)
+  DEMO: false,          // true = โหมดตัวอย่าง, false = โหมดใช้งานจริง บันทึกลง Google Sheet
 
   /* --- หน่วยงาน -------------------------------------------------- */
   ORG: 'รพ.สต.บ้านหนองครกใต้',
