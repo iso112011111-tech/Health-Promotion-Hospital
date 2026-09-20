@@ -300,6 +300,36 @@ https://liff.line.me/2001234567-AbCdEfGh
 > แต่คนที่ใส่รหัสถูกจะเข้าได้เสมอ การล็อกจึงกระทบเฉพาะคนที่เดารหัสผิด
 > ถ้าเจ้าหน้าที่ลืมรหัสและอยากล้างตัวนับ ให้รัน `unlockStaff()` ในตัวแก้ไขสคริปต์
 
+## Security headers ที่ตั้งไว้
+
+ตั้งใน [`vercel.json`](vercel.json) · ใช้กับทุกหน้า
+
+| Header | ค่า | ป้องกันอะไร |
+|---|---|---|
+| `Strict-Transport-Security` | Vercel ใส่ให้เอง | บังคับ https ตลอด |
+| `X-Content-Type-Options` | `nosniff` | กันเบราว์เซอร์เดาชนิดไฟล์ผิด |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | ไม่ส่ง path ที่มีข้อมูลออกไปเว็บอื่น |
+| `Permissions-Policy` | ปิด gps/ไมค์/กล้อง/จ่ายเงิน | หน้าเว็บนี้ไม่ต้องใช้ |
+| `X-Frame-Options` | `SAMEORIGIN` | กัน clickjacking |
+| `Content-Security-Policy` | `frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'` | กัน clickjacking · กันแอบใส่ `<base>` เปลี่ยนปลายทางลิงก์ทั้งหน้า · ปิด plugin · กันแอบสร้างฟอร์มส่งข้อมูลออกนอก |
+| `X-Permitted-Cross-Domain-Policies` | `none` | ปิดช่องทางเก่าของ Flash/PDF |
+| `X-Robots-Tag` | `noindex` ทุกหน้า | ไม่ให้ Google เก็บเข้าดัชนี |
+
+**ทำไม CSP ไม่ระบุ `script-src` / `connect-src`**
+
+เพราะโค้ดแอปเขียนอยู่ใน `<script>` ในหน้า และมี `style="..."` อีก 22 จุด
+ถ้าจะใส่ต้องเปิด `'unsafe-inline'` ทั้งคู่ ซึ่งเป็นการเปิดรูที่ CSP ตั้งใจจะปิดพอดี — ได้คะแนนสวยขึ้นแต่ป้องกันจริงได้น้อย
+
+และมีกับดักอีกข้อ: การเรียก Apps Script มีการ redirect
+`script.google.com` → `script.googleusercontent.com` **CSP ตรวจปลายทางของ redirect ด้วย**
+ถ้าใส่ `connect-src` แล้วลืมโดเมนที่สอง การจองคิวจะล้มเหลวทุกครั้งแบบเงียบ ๆ
+
+directive 4 ตัวที่เลือกใช้ **ไม่คุมการโหลดทรัพยากรใด ๆ เลย** จึงไม่มีทางทำให้ระบบพัง
+แต่ยังกันการโจมตีที่ใช้ได้จริงได้ (ตรวจแล้วว่าโปรเจ็คนี้ไม่มี `<form>` `<object>` `<base>` `<iframe>` สักจุด)
+
+> ถ้าต้องการ CSP เต็มรูปแบบจริง ๆ ต้องย้ายโค้ดออกจาก `<script>` ไปเป็นไฟล์แยก
+> และเปลี่ยน `style="..."` เป็น class ก่อน แล้วต้องทดสอบบนมือถือจริงหลายรอบ
+
 ## สิ่งที่ยังไม่ได้ทำ
 
 - ยังไม่ได้ยืนยัน **วันเปิดทำการของทันตกรรม** — ตอนนี้ตั้งไว้ อังคาร/พฤหัส/ศุกร์ ที่ `config.js` และ `gas/Code.gs`
