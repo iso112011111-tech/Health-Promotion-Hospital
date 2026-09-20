@@ -63,7 +63,7 @@
     <p class="qsub" id="dayhint" style="margin-top:9px"></p>
     <p class="label">เลือกช่วงเวลา</p>
     <div class="slots" id="slots"></div>
-    <p class="qsub" style="margin-top:12px">ไม่จำกัดจำนวนคิว · ตัวเลขบอกจำนวนผู้ที่จองไว้แล้วในช่วงนั้น</p>
+    <p class="qsub" style="margin-top:12px" id="slotnote"></p>
   </div>
   <div class="foot" id="f3" hidden><button class="cta" id="btn3" disabled>ถัดไป · กรอกข้อมูล</button></div>
 
@@ -317,36 +317,47 @@ function loadCounts(){
   renderDays(); renderSlots();
   api({ action:'counts', dept: st.dept })
     .then(function(j){ st.counts = j.counts || {}; })
-    .catch(function(){ st.counts = {}; })
-    .then(function(){ st.countsLoaded = true; renderSlots(); });
+    .catch(function(){ st.counts = {}; })          /* โหลดไม่ได้ก็ให้กดได้ เซิร์ฟเวอร์จะตรวจซ้ำอยู่ดี */
+    .then(function(){ st.countsLoaded = true; renderDays(); renderSlots(); });
 }
-function dayOpen(key, now){
+function cap(){ var d = D[st.dept]; return (d && d.cap) || 1; }
+
+/** ช่วงเวลานี้ยังจองได้ไหม */
+function slotFree(key, sl, now){
+  if (key === now.date && slotStart(sl) <= now.min) return false;   /* เลยเวลาไปแล้ว */
+  if (!st.countsLoaded) return true;                                /* ยังไม่รู้ ถือว่าว่างไว้ก่อน */
+  return (st.counts[key + '|' + sl] || 0) < cap();
+}
+
+/** สถานะของวัน: open = ยังมีช่วงว่าง · full = ถูกจองครบทุกช่วง · closed = ไม่เปิดทำการ */
+function dayState(key, now){
   var d = D[st.dept];
-  if (d.days.indexOf(dow(key)) < 0) return false;
-  if ((C.HOLIDAYS || []).indexOf(key) > -1) return false;
-  if (key === now.date){
-    if (!C.ALLOW_SAME_DAY) return false;
-    return d.slots.some(function(sl){ return slotStart(sl) > now.min; });
-  }
-  return true;
+  if (d.days.indexOf(dow(key)) < 0) return 'closed';
+  if ((C.HOLIDAYS || []).indexOf(key) > -1) return 'closed';
+  if (key === now.date && !C.ALLOW_SAME_DAY) return 'closed';
+  return d.slots.some(function(sl){ return slotFree(key, sl, now); }) ? 'open' : 'full';
 }
+
 function renderDays(){
   var d = D[st.dept], now = bkkNow();
   $('c3tag').textContent = d.tag;
   $('c3name').textContent = d.name + ' · ' + st.svc;
   $('dayhint').textContent = 'แผนก' + d.name + 'เปิดให้บริการ ' + d.dayTxt +
     (C.ALLOW_SAME_DAY ? ' · จองวันนี้ได้ถ้ายังไม่เลยเวลา' : '');
+  $('slotnote').textContent = '1 ช่วงเวลารับได้ ' + cap() + ' คิวเท่านั้น · ' +
+    'ช่วงที่มีผู้จองแล้วจะกดไม่ได้';
 
   var row = $('dayrow'); row.innerHTML = '';
   var first = null, valid = false;
   for (var i = 0; i <= C.BOOK_AHEAD_DAYS; i++){
-    var key = addDays(now.date, i), open = dayOpen(key, now), dd = dObj(key);
-    if (open && !first) first = key;
-    if (open && key === st.date) valid = true;
+    var key = addDays(now.date, i), state = dayState(key, now), dd = dObj(key);
+    if (state === 'open' && !first) first = key;
+    if (state === 'open' && key === st.date) valid = true;
     var b = document.createElement('button');
-    b.className = 'day'; b.disabled = !open;
+    b.className = 'day'; b.disabled = state !== 'open';
     b.innerHTML = '<small>' + DAY_S[dd.getUTCDay()] + '</small><b>' + dd.getUTCDate() + '</b><em>' +
-      (!open ? 'ปิด' : i === 0 ? 'วันนี้' : MON[dd.getUTCMonth()]) + '</em>';
+      (state === 'closed' ? 'ปิด' : state === 'full' ? 'เต็ม' : i === 0 ? 'วันนี้' : MON[dd.getUTCMonth()]) +
+      '</em>';
     (function(k){ b.onclick = function(){ st.date = k; st.slot = null; renderDays(); renderSlots(); }; })(key);
     row.appendChild(b);
   }
@@ -354,8 +365,11 @@ function renderDays(){
   Array.prototype.forEach.call(row.children, function(b, i){
     b.setAttribute('aria-pressed', addDays(now.date, i) === st.date ? 'true' : 'false');
   });
-  if (!first) $('dayhint').textContent = 'ขณะนี้ยังไม่เปิดให้จองแผนก' + d.name + ' กรุณาติดต่อเจ้าหน้าที่';
+  if (!first)
+    $('dayhint').textContent = 'ขณะนี้คิวแผนก' + d.name + 'เต็มทุกวันที่เปิดให้จอง ' +
+      'กรุณาลองใหม่ภายหลังหรือติดต่อเจ้าหน้าที่';
 }
+
 function renderSlots(){
   var d = D[st.dept], S = $('slots'), now = bkkNow();
   S.innerHTML = '';
@@ -365,13 +379,13 @@ function renderSlots(){
       var g = document.createElement('div'); g.className = 'gap'; g.textContent = 'พักกลางวัน'; S.appendChild(g);
     }
     var passed = st.date === now.date && slotStart(sl) <= now.min;
-    var n = st.counts[st.date + '|' + sl] || 0;
+    var taken  = st.countsLoaded && (st.counts[st.date + '|' + sl] || 0) >= cap();
     var b = document.createElement('button');
-    b.className = 'slot'; b.disabled = passed;
+    b.className = 'slot'; b.disabled = passed || taken;
     b.setAttribute('aria-pressed', st.slot === sl ? 'true' : 'false');
     b.innerHTML = '<b>' + sl + '</b><small>' +
-      (passed ? 'เลยเวลาแล้ว' : !st.countsLoaded ? 'กำลังตรวจสอบ…' :
-       n === 0 ? 'ยังไม่มีคนจอง' : 'จองแล้ว ' + n + ' คน') + '</small>';
+      (passed ? 'เลยเวลาแล้ว' : taken ? 'มีผู้จองแล้ว'
+              : !st.countsLoaded ? 'กำลังตรวจสอบ…' : 'ว่าง') + '</small>';
     b.onclick = function(){ st.slot = sl; renderSlots(); };
     S.appendChild(b);
   });

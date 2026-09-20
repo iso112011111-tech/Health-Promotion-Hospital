@@ -117,5 +117,13 @@ t('a_config ไม่มี token หรือรหัสผ่านหลุ�
 t('a_config ไม่มีข้อมูลคนไข้', /idCard|userId|tel/.test(JSON.stringify(cfg)), false);
 t('a_config มีครบ 2 แผนก', Object.keys(cfg.depts).sort(), ['dn', 'tm']);
 
+grp('[10] เพดานคิวต่อช่วงเวลา');
+t('ค่าเริ่มต้นของระบบ = 1 คิวต่อช่วง', ctx.CAP_PER_SLOT, 1);
+Object.keys(ctx.DEPTS).forEach(k =>
+  t('แผนก ' + ctx.DEPTS[k].name + ' ตั้ง cap ไว้', ctx.DEPTS[k].cap, 1));
+t('a_config ส่ง cap ไปให้หน้าเว็บด้วย',
+  Object.keys(ctx.a_config().depts).every(k => ctx.a_config().depts[k].cap >= 1), true);
+t('a_config ส่ง capPerSlot', ctx.a_config().capPerSlot, 1);
+
 console.log(`\n${'─'.repeat(46)}\nสรุป: ผ่าน ${pass} · ไม่ผ่าน ${fail}\n`);
 process.exit(fail ? 1 : 0);

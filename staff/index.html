@@ -217,7 +217,6 @@ function demo(p){
       var days = {};
       for (var i=0;i<31;i++){
         var k = addDays(p.to, -i); if (k < p.from) break;
-        if (dow(k) === 0 || dow(k) === 6) continue;
         var h = 0; for (var j=0;j<k.length;j++) h = (h*31 + k.charCodeAt(j)) >>> 0;
         days[k] = {
           tm:{ total:4+h%5, booked:0, checkin:0, done:3+h%4, noshow:h%2, cancelled:(h>>2)%2 },

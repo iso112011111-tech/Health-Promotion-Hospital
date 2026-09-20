@@ -16,20 +16,20 @@
  * หน้าเว็บจะดึงค่าจาก a_config ตอนเปิด ไม่ต้องแก้ config.js ให้ตรงกันอีก
  *********************************************************************/
 
-var VERSION = '2026-09-20.6';
+var VERSION = '2026-09-20.9';
 
 /* ============ ตารางบริการ — แก้ที่นี่ที่เดียว ============ */
 var DEPTS = {
   tm: {
-    name: 'แพทย์แผนไทย', tag: 'ท', blurb: 'นวด ประคบ พอก อบสมุนไพร',
-    days: [1, 2, 3, 4, 5], dayTxt: 'จันทร์–ศุกร์', breakAfter: 2,
-    slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '13:30–14:30', '15:00–16:00'],
+    name: 'แพทย์แผนไทย', tag: 'ท', blurb: 'นวด ประคบ พอก อบสมุนไพร', cap: 1,
+    days: [1, 2, 3, 4, 5, 6], dayTxt: 'จันทร์–เสาร์', breakAfter: 2,
+    slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '13:30–14:30', '14:30–15:30'],
     services: ['ตรวจ / ประเมินอาการแพทย์แผนไทย', 'นวดไทย', 'ประคบสมุนไพร', 'พอกเข่า',
                'อบสมุนไพร', 'รับยาสมุนไพร', 'ปรึกษาด้านสมุนไพร', 'ติดตามผลการรักษา']
   },
   dn: {
-    name: 'ทันตกรรม', tag: 'ฟ', blurb: 'ตรวจฟัน ขูดหินปูน อุด ถอน',
-    days: [2, 4, 5], dayTxt: 'อังคาร · พฤหัสบดี · ศุกร์', breakAfter: 2,
+    name: 'ทันตกรรม', tag: 'ฟ', blurb: 'ตรวจฟัน ขูดหินปูน อุด ถอน', cap: 1,
+    days: [0, 1, 2], dayTxt: 'อาทิตย์ · จันทร์ · อังคาร', breakAfter: 2,
     slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '14:00–15:00', '15:00–16:00'],
     services: ['ตรวจสุขภาพช่องปาก', 'ขูดหินปูน', 'อุดฟัน', 'ถอนฟัน', 'เคลือบฟลูออไรด์',
                'ตรวจ / รักษาอาการปวดฟัน', 'นัดติดตามการรักษา']
@@ -44,6 +44,7 @@ var ARRIVE_BEFORE = 15;
 var BOOK_AHEAD_DAYS = 14;
 var ALLOW_SAME_DAY = true;
 var MAX_ACTIVE = 4;                // จำนวนคิวที่ยังไม่ถึงวันนัด ต่อ 1 คน
+var CAP_PER_SLOT = 1;              // รับได้กี่คิวต่อ 1 ช่วงเวลา (ตั้งรายแผนกได้ที่ cap ใน DEPTS)
 var TZ = 'Asia/Bangkok';
 
 /* ความยาวสูงสุดของข้อความที่รับจากผู้ใช้ */
@@ -300,7 +301,7 @@ function a_config() {
   return {
     ok: true, version: VERSION,
     org: ORG, orgShort: ORG_SHORT,
-    depts: DEPTS, rights: RIGHTS, holidays: HOLIDAYS,
+    depts: DEPTS, rights: RIGHTS, holidays: HOLIDAYS, capPerSlot: CAP_PER_SLOT,
     allowSameDay: ALLOW_SAME_DAY, bookAheadDays: BOOK_AHEAD_DAYS, arriveBefore: ARRIVE_BEFORE
   };
 }
@@ -388,6 +389,15 @@ function a_book(q) {
     if (active >= MAX_ACTIVE)
       throw new Error('คุณมีคิวที่ยังไม่ถึงวันนัด ' + active + ' รายการแล้ว ' +
                       'จองเพิ่มได้ไม่เกิน ' + MAX_ACTIVE + ' รายการ กรุณายกเลิกคิวเดิมก่อน');
+
+    /* 1 ช่วงเวลารับได้เท่าที่ cap กำหนด — ตรวจในล็อก ไม่งั้นสองคนกดพร้อมกันจะแย่งช่วงเดียวกันได้ */
+    var cap = dep.cap || CAP_PER_SLOT;
+    var taken = all.filter(function (r) {
+      return r.dept === q.dept && dateOf_(r) === q.date &&
+             r.slot === q.slot && r.status !== 'cancelled';
+    }).length;
+    if (taken >= cap)
+      throw new Error('ช่วงเวลา ' + q.slot + ' น. มีผู้จองแล้ว กรุณาเลือกช่วงเวลาอื่น');
 
     /* เลขคิวไล่ตามลำดับ แยกตามแผนกและวัน */
     var n = 0;
@@ -698,4 +708,84 @@ function setup() {
              'เพราะ URL ของ API เป็นข้อมูลสาธารณะ รหัสนี้คือด่านเดียวที่กั้นข้อมูลคนไข้');
   if (!missing.length && key && key.length >= 12) msg.push('✅ พร้อมใช้งาน Deploy เป็น Web app ได้เลย');
   console.log(msg.join('\n'));
+}
+
+/* ================================================================= */
+/*  เครื่องมือล้างข้อมูล — ใช้ก่อนเปิดใช้งานจริง                      */
+/* ================================================================= */
+
+/** ดูว่ามีข้อมูลอะไรอยู่บ้าง — ไม่ลบอะไรทั้งสิ้น ควรรันดูก่อนล้างเสมอ */
+function showDataSummary() {
+  var b = rows_(book_()), p = rows_(pat_());
+  var out = ['📋 ข้อมูลในระบบขณะนี้', '  คิวทั้งหมด ' + b.length + ' รายการ'];
+  var byStatus = {}, byDept = {};
+  b.forEach(function (r) {
+    byStatus[r.status] = (byStatus[r.status] || 0) + 1;
+    byDept[r.dept] = (byDept[r.dept] || 0) + 1;
+  });
+  Object.keys(byStatus).forEach(function (k) { out.push('      ' + k + ': ' + byStatus[k]); });
+  Object.keys(byDept).forEach(function (k) {
+    out.push('      ' + ((dept_(k) || {}).name || k) + ': ' + byDept[k]);
+  });
+  if (b.length) {
+    var ds = b.map(dateOf_).sort();
+    out.push('  ช่วงวันนัด ' + ds[0] + ' ถึง ' + ds[ds.length - 1]);
+  }
+  out.push('  ผู้รับบริการที่บันทึกข้อมูลไว้ ' + p.length + ' คน');
+  out.push('', 'ถ้าทั้งหมดนี้เป็นข้อมูลทดสอบ ให้รัน resetAllData() ต่อได้');
+  console.log(out.join('\n'));
+}
+
+/**
+ * ล้างข้อมูลทั้งหมดในชีต bookings และ patients — เหลือไว้แค่หัวตาราง
+ *
+ * ⚠️ ลบแล้วกู้คืนไม่ได้ ควรรัน showDataSummary() ดูก่อนเสมอ
+ *
+ * วิธีใช้
+ *   1. แก้บรรทัด var CONFIRM = ''  ให้เป็น  var CONFIRM = 'ลบข้อมูลทั้งหมด'
+ *   2. บันทึก แล้วกด Run
+ *   3. เสร็จแล้วแก้กลับเป็นค่าว่าง เพื่อกันกดพลาดครั้งหน้า
+ */
+function resetAllData() {
+  var CONFIRM = '';        // ← พิมพ์  ลบข้อมูลทั้งหมด  ลงระหว่างเครื่องหมายคำพูด
+
+  if (CONFIRM !== 'ลบข้อมูลทั้งหมด') {
+    console.log([
+      '⛔ ยังไม่ได้ยืนยัน — ไม่มีอะไรถูกลบ',
+      '',
+      'ถ้าต้องการลบจริง ให้แก้บรรทัดในฟังก์ชันนี้จาก',
+      "    var CONFIRM = '';",
+      'เป็น',
+      "    var CONFIRM = 'ลบข้อมูลทั้งหมด';",
+      'บันทึกแล้วกด Run อีกครั้ง',
+      '',
+      '💡 แนะนำให้รัน showDataSummary() ดูก่อนว่ากำลังจะลบอะไรไป'
+    ].join('\n'));
+    return;
+  }
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var counts = [];
+    [['คิว', book_()], ['ผู้รับบริการ', pat_()]].forEach(function (pair) {
+      var sh = pair[1], last = sh.getLastRow();
+      counts.push(pair[0] + ' ' + (last > 1 ? last - 1 : 0) + ' รายการ');
+      if (last > 1) sh.deleteRows(2, last - 1);   /* แถว 1 คือหัวตาราง เก็บไว้ */
+    });
+    /* ขยับเลขเวอร์ชันข้อมูลไปไกล ๆ เพื่อให้แคชเดิมใช้ไม่ได้ทันที */
+    PropertiesService.getScriptProperties().setProperty('DATA_VER', String(Date.now()));
+    try { CacheService.getScriptCache().removeAll(['staff_fail']); } catch (e) {}
+
+    console.log([
+      '✅ ล้างข้อมูลเรียบร้อย',
+      '  ลบไป: ' + counts.join(' · '),
+      '  เลขคิวจะเริ่มนับใหม่จาก 001',
+      '  ผู้ที่เคยจองจะต้องกรอกเลขบัตรประชาชนใหม่อีกครั้งในการจองครั้งหน้า',
+      '',
+      "⚠️ อย่าลืมแก้ CONFIRM กลับเป็น '' แล้วบันทึก เพื่อกันการกดพลาดครั้งหน้า"
+    ].join('\n'));
+  } finally {
+    lock.releaseLock();
+  }
 }
