@@ -155,6 +155,8 @@ td.zero{color:var(--ink3)}
 var C = window.APP_CONFIG;
 var D = C.DEPTS;                     /* เซิร์ฟเวอร์เขียนทับตอนเข้าสู่ระบบ */
 var $ = function (id) { return document.getElementById(id); };
+var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o || {}, String(k)); };
+var dep = function (k) { return has(D, k) ? D[k] : null; };
 var K_KEY = 'nkt_staff_key', K_SEEN = 'nkt_seen_upcoming', K_SND = 'nkt_sound';
 var st = { key:'', date: bkkNow().date, tab:'now', filter:'all', range:7,
            items:[], upcoming:[], seen:{}, sound:true, first:true, timer:null, bound:false };
@@ -337,7 +339,11 @@ function markSeen(){
   st.seen = keep; ls(K_SEEN, JSON.stringify(keep));
 }
 
-$('date').onchange    = function(){ st.date = this.value; loadAll(); };
+$('date').onchange = function(){
+  st.date = isYmd(this.value) ? this.value : bkkNow().date;
+  this.value = st.date;
+  loadAll();
+};
 $('todaybtn').onclick = function(){ st.date = bkkNow().date; $('date').value = st.date; loadAll(); };
 $('refresh').onclick  = function(){ loadAll(); };
 $('alertgo').onclick  = function(){ setTab('up'); };
@@ -364,7 +370,7 @@ function renderAlert(){
   $('alerttxt').textContent = 'มีนัดจองล่วงหน้าใหม่ ' + fresh.length + ' รายการ';
   var soon = fresh.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; })[0];
   $('alertsub').textContent = 'ใกล้ที่สุด · ' + thUntil(soon.date) + ' ' + thDate(soon.date) +
-    ' · ' + ((D[soon.dept] && D[soon.dept].name) || soon.dept) + ' · ' + soon.name;
+    ' · ' + ((dep(soon.dept) && dep(soon.dept).name) || soon.dept) + ' · ' + soon.name;
 }
 
 /* ---------------- แสดงผล ---------------- */
@@ -376,7 +382,7 @@ function el(html){ var d = document.createElement('div'); d.innerHTML = html; re
 
 function qrow(r, opts){
   opts = opts || {};
-  var d = D[r.dept] || { name: r.dept }, lab = LABEL[r.status] || ['-','mute'];
+  var d = dep(r.dept) || { name: r.dept }, lab = LABEL[r.status] || ['-','mute'];
   var e = el('<div class="qrow"></div>');
   e.setAttribute('data-dept', r.dept);
   if (opts.isNew) e.classList.add('isnew');
@@ -385,7 +391,9 @@ function qrow(r, opts){
     '<span class="code">' + esc(r.queueNo) + '</span>' +
     '<span class="who"><b>' + esc(r.name) +
       (opts.isNew ? ' <span class="chip bad">ใหม่</span>' : '') +
-      ' <span class="chip ' + lab[1] + '">' + lab[0] + '</span></b>' +
+      ' <span class="chip ' + lab[1] + '">' + lab[0] + '</span>' +
+      (r.status === 'booked' && r.calledAt
+        ? ' <span class="chip ok">เรียกแล้ว ' + esc(r.calledAt) + '</span>' : '') + '</b>' +
       '<small>' + esc(d.name) + ' · ' + esc(r.service) + '</small>' +
       '<small>' + esc(r.tel || '') + (r.right ? ' · ' + esc(r.right) : '') +
         (opts.showDate ? ' · ' + esc(r.slot) + ' น.' : '') + '</small>' +
@@ -411,7 +419,8 @@ function qrow(r, opts){
       acts.appendChild(b);
     }
     if (r.status === 'booked'){
-      add('เรียกคิว', 'call', true); add('เช็คอิน', 'checkin'); add('ไม่มา', 'noshow');
+      add(r.calledAt ? 'เรียกซ้ำ' : 'เรียกคิว', 'call', !r.calledAt);
+      add('เช็คอิน', 'checkin'); add('ไม่มา', 'noshow');
     } else if (r.status === 'checkin'){
       add('เสร็จสิ้น', 'done', true); add('ไม่มา', 'noshow');
     } else if (r.status === 'done' || r.status === 'noshow'){

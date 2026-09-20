@@ -23,23 +23,40 @@ function bkkNow() {
 }
 
 function dObj(s) { var p = String(s).split('-'); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
-function addDays(s, n) { var d = dObj(s); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
-function dow(s) { return dObj(s).getUTCDay(); }
+
+/**
+ * true เมื่อเป็นรูปแบบ YYYY-MM-DD ที่มีอยู่จริงบนปฏิทิน
+ * ต้องแปลงกลับมาเทียบด้วย เพราะ '2026-02-31' จะถูกเลื่อนเป็น 3 มี.ค. โดยไม่แจ้งเตือน
+ */
+function isYmd(s) {
+  s = String(s);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var d = dObj(s);
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
+}
+/** ถ้าค่าที่ส่งมาไม่ใช่วันที่ใช้ได้ ให้ถอยไปใช้วันนี้แทน กันหน้าเว็บพังทั้งหน้า */
+function safeYmd(s) { return isYmd(s) ? String(s) : bkkNow().date; }
+
+function addDays(s, n) {
+  var d = dObj(safeYmd(s)); d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function dow(s) { return dObj(safeYmd(s)).getUTCDay(); }
 function slotStart(sl) { var t = String(sl).split('–')[0].split(':'); return (+t[0]) * 60 + (+t[1]); }
 
 /** '2026-09-21' → '21 ก.ย. 2569' · full=true → 'จันทร์ที่ 21 ก.ย. 2569' */
 function thDate(s, full) {
-  var d = dObj(s);
+  var d = dObj(safeYmd(s));
   return (full ? DAY_L[d.getUTCDay()] + 'ที่ ' : '') + d.getUTCDate() + ' ' +
          MON[d.getUTCMonth()] + ' ' + (d.getUTCFullYear() + 543);
 }
 /** '2026-09-21' → '21 ก.ย.' (ไม่มีปี ใช้ในตารางและรายการที่พื้นที่จำกัด) */
-function thShort(s) { var d = dObj(s); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
+function thShort(s) { var d = dObj(safeYmd(s)); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
 
 /** จำนวนวันจากวันนี้ → 'วันนี้' 'พรุ่งนี้' 'อีก 3 วัน' */
 function thUntil(s) {
   var t = bkkNow().date;
-  var n = Math.round((dObj(s) - dObj(t)) / 864e5);
+  var n = Math.round((dObj(safeYmd(s)) - dObj(t)) / 864e5);
   return n === 0 ? 'วันนี้' : n === 1 ? 'พรุ่งนี้' : n === 2 ? 'มะรืนนี้'
        : n > 0 ? 'อีก ' + n + ' วัน' : n === -1 ? 'เมื่อวาน' : 'ผ่านมา ' + (-n) + ' วัน';
 }

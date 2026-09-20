@@ -130,6 +130,8 @@ var ICON = {
   dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.2C5 3.2 3.6 5 3.6 7.6c0 3.4 1 4.6 1.7 8 .5 2.6 1 5.2 2.3 5.2 1.2 0 1.5-2.2 1.9-4.4.3-1.6.6-2.4 1.5-2.4s1.2.8 1.5 2.4c.4 2.2.7 4.4 1.9 4.4 1.3 0 1.8-2.6 2.3-5.2.7-3.4 1.7-4.6 1.7-8 0-2.6-1.4-4.4-3.9-4.4-1.6 0-2.4.8-3.5.8s-1.9-.8-3.5-.8z"/></svg>'
 };
 var $ = function (id) { return document.getElementById(id); };
+var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o || {}, String(k)); };
+var dep = function (k) { return has(D, k) ? D[k] : null; };
 var app = $('app');
 var st = { step:0, dept:null, svc:null, date:null, slot:null,
            profile:null, patient:null, counts:{}, countsLoaded:false, idToken:null, last:null };
@@ -148,7 +150,16 @@ function restoreDraft(){
   try {
     var o = JSON.parse(sessionStorage.getItem(DRAFT) || 'null');
     if (!o) return;
-    FIELDS.forEach(function(k){ if (o[k]) { var e = $(k); if (e) e.value = o[k]; } });
+    FIELDS.forEach(function(k){
+      if (!o[k]) return;
+      var e = $(k); if (!e) return;
+      if (k === 'f-right'){
+        /* เพิ่มตัวเลือกเข้าไปถ้ายังไม่มี ไม่สร้างรายการใหม่ทั้งชุด จะได้ไม่ลบของเดิมทิ้ง */
+        var found = Array.prototype.some.call(e.options, function(op){ return op.value === o[k]; });
+        if (!found) e.add(new Option(o[k], o[k]));
+      }
+      e.value = o[k];
+    });
     if (o.pdpa) $('f-pdpa').checked = true;
   } catch (e) {}
 }
@@ -181,6 +192,27 @@ function fieldErr(wrapId, msg){
   else { w.classList.remove('bad'); p.hidden = true; }
   return !msg;
 }
+/**
+ * เข้าสู่ระบบใหม่แบบมีเพดาน
+ * ถ้า LIFF ไม่ได้เปิดสิทธิ์ openid หรือบัญชีมีปัญหา การสั่ง login ซ้ำจะวนไม่รู้จบ
+ * และผู้ใช้จะเห็นแค่หน้าขาวสลับไปมา จึงต้องหยุดแล้วบอกให้ชัดว่าต้องแก้ที่ไหน
+ */
+var LOGIN_TRY = 'nkt_login_try';
+function loginAgain(){
+  var n = 0;
+  try { n = Number(sessionStorage.getItem(LOGIN_TRY) || 0); } catch (e) {}
+  if (n >= 2){
+    fail('เข้าสู่ระบบไม่สำเร็จ',
+         'ลองเข้าสู่ระบบหลายครั้งแล้วยังไม่ผ่าน กรุณาปิดหน้านี้แล้วเปิดใหม่จากเมนูในแอป LINE ' +
+         'หากยังไม่ได้ กรุณาแจ้งเจ้าหน้าที่');
+    return false;
+  }
+  try { sessionStorage.setItem(LOGIN_TRY, String(n + 1)); } catch (e) {}
+  liff.login({ redirectUri: location.href });
+  return true;
+}
+function loginOk(){ try { sessionStorage.removeItem(LOGIN_TRY); } catch (e) {} }
+
 function fail(title, msg, btnTxt, btnFn){
   hideAll();
   $('errttl').textContent = title; $('errmsg').textContent = msg;
@@ -231,7 +263,7 @@ function go(n){
   if ($('f'+n)) $('f'+n).hidden = false;
   $('topbar').hidden = false;
   $('topttl').firstChild.nodeValue = TITLES[n][0];
-  $('topsub').textContent = (n === 1 || n === 6) ? C.ORG : (st.dept ? D[st.dept].name : C.ORG);
+  $('topsub').textContent = (n === 1 || n === 6) ? C.ORG : ((dep(st.dept) && dep(st.dept).name) || C.ORG);
   $('back').hidden = (n === 1 || n === 5);
   $('s'+n).scrollTop = 0;
   if (n === 3) loadCounts();
@@ -402,6 +434,11 @@ $('btn4').onclick = function(){
         note: $('f-note').value.trim(), consent: true })
   .then(function(j){
     clearDraft();
+    st.patient = st.patient || {};
+    st.patient.hasIdCard = true;               /* จองรอบถัดไปไม่ต้องกรอกเลขบัตรซ้ำ */
+    $('f-id').value = '';
+    $('f-id').placeholder = 'บันทึกไว้แล้ว';
+    $('idhelp').textContent = 'บันทึกไว้แล้ว เว้นว่างไว้ได้ · กรอกใหม่เฉพาะเมื่อต้องการแก้ไข';
     st.last = { queueNo: j.queueNo, name: name, right: $('f-right').value, pushed: j.pushed !== false };
     renderTicket(); go(5);
   })
@@ -409,7 +446,7 @@ $('btn4').onclick = function(){
     if (e.code === 'AUTH_EXPIRED' && !C.DEMO){
       fail('การเข้าสู่ระบบหมดอายุ',
            'ข้อมูลที่กรอกไว้ถูกเก็บให้แล้ว กดปุ่มด้านล่างเพื่อเข้าสู่ระบบใหม่ แล้วเลือกวันเวลาอีกครั้ง',
-           'เข้าสู่ระบบใหม่', function(){ liff.login({ redirectUri: location.href }); });
+           'เข้าสู่ระบบใหม่', function(){ loginAgain(); });
       return;
     }
     $('formerr').textContent = 'จองไม่สำเร็จ · ' + e.message;
@@ -457,7 +494,7 @@ function loadMine(){
     if (!items.length){ L.innerHTML = '<div class="empty">ยังไม่มีคิวที่จองไว้</div>'; return; }
     L.innerHTML = '';
     items.forEach(function(it){
-      var d = D[it.dept] || { name: it.dept };
+      var d = dep(it.dept) || { name: it.dept };
       var e = document.createElement('div');
       e.className = 'sum'; e.setAttribute('data-dept', it.dept);
       e.innerHTML =
@@ -515,6 +552,7 @@ function applyProfile(p, patient){
     }
     if (patient.consent) $('f-pdpa').checked = true;
   }
+  loginOk();
   restoreDraft();
   renderDepts();
   go(1);
@@ -531,13 +569,17 @@ function start(){
 
   liff.init({ liffId: C.LIFF_ID })
     .then(function(){
-      if (!liff.isLoggedIn()){ liff.login({ redirectUri: location.href }); return new Promise(function(){}); }
+      if (!liff.isLoggedIn()){ loginAgain(); return new Promise(function(){}); }
       st.idToken = liff.getIDToken();
+      if (!st.idToken)
+        return fail('ตั้งค่า LIFF ยังไม่ครบ',
+          'หน้าจองยืนยันตัวตนไม่ได้เพราะ LIFF ยังไม่ได้เปิดสิทธิ์ openid ' +
+          'กรุณาแจ้งผู้ดูแลระบบให้ติ๊ก profile และ openid ในหน้า LINE Developers');
       return liff.getProfile().then(function(p){
         return Promise.all([
           api({ action:'config' }).catch(function(){ $('offlinewarn').hidden = false; return null; }),
           api({ action:'init' }).catch(function(e){
-            if (e.code === 'AUTH_EXPIRED'){ liff.login({ redirectUri: location.href }); throw e; }
+            if (e.code === 'AUTH_EXPIRED'){ loginAgain(); throw e; }
             return { patient: null };
           })
         ]).then(function(r){ applyConfig(r[0]); applyProfile(p, r[1] && r[1].patient); });

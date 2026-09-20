@@ -16,7 +16,7 @@
  * หน้าเว็บจะดึงค่าจาก a_config ตอนเปิด ไม่ต้องแก้ config.js ให้ตรงกันอีก
  *********************************************************************/
 
-var VERSION = '2026-09-20.4';
+var VERSION = '2026-09-20.6';
 
 /* ============ ตารางบริการ — แก้ที่นี่ที่เดียว ============ */
 var DEPTS = {
@@ -79,17 +79,16 @@ function doPost(e) {
     if (!handler) throw new Error('ไม่รู้จักคำสั่ง: ' + q.action);
     return json(handler(q));
   } catch (err) {
-    var msg = String((err && err.message) || err);
-    return json({ ok: false, error: msg, code: errCode_(msg) });
+    return json({
+      ok: false,
+      error: String((err && err.message) || err),
+      code: (err && err.appCode) || 'ERROR'
+    });
   }
 }
 
-/** รหัสข้อผิดพลาดให้หน้าเว็บแยกแยะได้ โดยไม่ต้องเดาจากข้อความ */
-function errCode_(msg) {
-  if (/หมดอายุ|เข้าสู่ระบบ/.test(msg)) return 'AUTH_EXPIRED';
-  if (/รหัสผ่านเจ้าหน้าที่|ล็อกชั่วคราว/.test(msg)) return 'STAFF_AUTH';
-  return 'ERROR';
-}
+/** สร้างข้อผิดพลาดพร้อมรหัส ให้หน้าเว็บตัดสินใจได้ถูกโดยไม่ต้องอ่านข้อความ */
+function err_(code, msg) { var e = new Error(msg); e.appCode = code; return e; }
 
 function doGet() {
   return json({
@@ -108,6 +107,11 @@ function json(obj) {
 /*  ตัวช่วยทั่วไป                                                    */
 /* ================================================================= */
 function prop(k) { return PropertiesService.getScriptProperties().getProperty(k) || ''; }
+
+/** ค้นแผนกอย่างปลอดภัย — กันค่าอย่าง __proto__ ที่ทำให้ได้ออบเจกต์แปลกปลอมกลับมา */
+function dept_(k) {
+  return Object.prototype.hasOwnProperty.call(DEPTS, String(k)) ? DEPTS[String(k)] : null;
+}
 
 /** ตัดข้อความให้ไม่เกินความยาวที่กำหนด และตัดช่องว่างหัวท้าย */
 function clip_(v, max) { return String(v == null ? '' : v).trim().slice(0, max); }
@@ -149,13 +153,20 @@ function sheet_(name, cols) {
   var last = sh.getLastColumn();
   var head = last ? sh.getRange(1, 1, 1, last).getValues()[0] : [];
   var add = cols.filter(function (c) { return head.indexOf(c) < 0; });
-  if (add.length) sh.getRange(1, head.length + 1, 1, add.length).setValues([add]).setFontWeight('bold');
+  if (add.length) {
+    sh.getRange(1, head.length + 1, 1, add.length).setValues([add]).setFontWeight('bold');
+    delete HEAD_CACHE[name];
+  }
   return sh;
 }
 
+var HEAD_CACHE = {};
 function head_(sh) {
+  var n = sh.getName();
+  if (HEAD_CACHE[n]) return HEAD_CACHE[n];
   var last = sh.getLastColumn();
-  return last ? sh.getRange(1, 1, 1, last).getValues()[0] : [];
+  HEAD_CACHE[n] = last ? sh.getRange(1, 1, 1, last).getValues()[0] : [];
+  return HEAD_CACHE[n];
 }
 
 function rows_(sh) {
@@ -196,13 +207,14 @@ function cachePut_(k, v, sec) {
   try {
     var s = JSON.stringify(v);
     if (s.length < 90000) CacheService.getScriptCache().put(k, s, sec || 45);
+    else console.warn('ข้อมูลใหญ่เกินกว่าจะแคชได้ (' + s.length + ' ตัวอักษร) ระบบจะอ่านชีตใหม่ทุกครั้ง');
   } catch (e) {}
 }
 
 /* ---------------- ยืนยันตัวตน ---------------- */
 /** ตรวจ ID token กับเซิร์ฟเวอร์ LINE — ห้ามเชื่อ userId ที่ส่งมาจากหน้าเว็บ */
 function verify_(idToken) {
-  if (!idToken) throw new Error('ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาเปิดหน้าจองจากเมนูในแอป LINE');
+  if (!idToken) throw err_('AUTH_EXPIRED', 'ไม่พบข้อมูลการเข้าสู่ระบบ กรุณาเปิดหน้าจองจากเมนูในแอป LINE');
   var res = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify', {
     method: 'post',
     payload: { id_token: idToken, client_id: prop('LOGIN_CHANNEL_ID') },
@@ -211,7 +223,7 @@ function verify_(idToken) {
   var body;
   try { body = JSON.parse(res.getContentText()); } catch (e) { body = {}; }
   if (res.getResponseCode() !== 200 || !body.sub)
-    throw new Error('การเข้าสู่ระบบหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+    throw err_('AUTH_EXPIRED', 'การเข้าสู่ระบบหมดอายุ กรุณาเข้าสู่ระบบใหม่');
   return { userId: body.sub, displayName: body.name || '', pictureUrl: body.picture || '' };
 }
 
@@ -230,18 +242,19 @@ function eq_(a, b) {
  */
 function staff_(q) {
   var key = prop('STAFF_KEY');
-  if (!key) throw new Error('ระบบยังไม่ได้ตั้งรหัสผ่านเจ้าหน้าที่ กรุณาติดต่อผู้ดูแล');
+  if (!key) throw err_('STAFF_AUTH', 'ระบบยังไม่ได้ตั้งรหัสผ่านเจ้าหน้าที่ กรุณาติดต่อผู้ดูแล');
   var c = CacheService.getScriptCache();
+
+  /* ตรวจรหัสที่ถูกต้องก่อนเสมอ — คนที่กำลังเดารหัสจึงล็อกเจ้าหน้าที่ตัวจริงออกไม่ได้ */
+  if (eq_(q.key || '', key)) { c.remove('staff_fail'); return; }
+
   var fails = Number(c.get('staff_fail')) || 0;
-  if (fails >= STAFF_MAX_FAIL)
-    throw new Error('ใส่รหัสผ่านผิดเกินกำหนด ระบบล็อกชั่วคราวประมาณ ' + STAFF_LOCK_MIN + ' นาที');
-  if (!eq_(q.key || '', key)) {
-    c.put('staff_fail', String(fails + 1), STAFF_LOCK_MIN * 60);
-    Utilities.sleep(STAFF_FAIL_DELAY_MS);
-    var left = STAFF_MAX_FAIL - fails - 1;
-    throw new Error('รหัสผ่านเจ้าหน้าที่ไม่ถูกต้อง' + (left > 0 ? ' (เหลืออีก ' + left + ' ครั้ง)' : ''));
-  }
-  c.remove('staff_fail');
+  c.put('staff_fail', String(fails + 1), STAFF_LOCK_MIN * 60);
+  Utilities.sleep(STAFF_FAIL_DELAY_MS);
+  if (fails + 1 >= STAFF_MAX_FAIL)
+    throw err_('STAFF_AUTH', 'ใส่รหัสผ่านผิดเกินกำหนด กรุณารอประมาณ ' + STAFF_LOCK_MIN + ' นาที');
+  throw err_('STAFF_AUTH',
+    'รหัสผ่านเจ้าหน้าที่ไม่ถูกต้อง (เหลืออีก ' + (STAFF_MAX_FAIL - fails - 1) + ' ครั้ง)');
 }
 function unlockStaff() {
   CacheService.getScriptCache().remove('staff_fail');
@@ -262,6 +275,17 @@ function slotStart_(slot) {
 function dow_(s) {
   var p = String(s).split('-');
   return new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2]))).getUTCDay();
+}
+/**
+ * true เมื่อเป็นวันที่ YYYY-MM-DD ที่มีอยู่จริงบนปฏิทิน
+ * ตรวจแค่รูปแบบไม่พอ เพราะ '2026-02-31' จะถูกเลื่อนไปเป็น 3 มี.ค. เงียบ ๆ
+ */
+function isYmd_(s) {
+  s = String(s);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  var p = s.split('-');
+  var d = new Date(Date.UTC(Number(p[0]), Number(p[1]) - 1, Number(p[2])));
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 function dateOf_(r) { return r.date instanceof Date ? ymd_(r.date) : String(r.date); }
 function maskId_(n) {
@@ -302,7 +326,7 @@ function a_init(q) {
 
 function a_counts(q) {
   verify_(q.idToken);                       /* ปิดไม่ให้เรียกจากภายนอกโดยไม่ผ่าน LINE */
-  var dep = DEPTS[q.dept];
+  var dep = dept_(q.dept);
   if (!dep) throw new Error('ไม่พบแผนกที่เลือก');
   var from = today_(), counts = {};
   rows_(book_()).forEach(function (r) {
@@ -317,13 +341,13 @@ function a_counts(q) {
 
 function a_book(q) {
   var u = verify_(q.idToken);
-  var dep = DEPTS[q.dept];
+  var dep = dept_(q.dept);
   if (!dep) throw new Error('ไม่พบแผนกที่เลือก');
   if (dep.slots.indexOf(q.slot) < 0) throw new Error('ช่วงเวลาไม่ถูกต้อง');
   if (dep.services.indexOf(String(q.service)) < 0)
     throw new Error('ไม่พบบริการที่เลือกในแผนก' + dep.name);
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(q.date))) throw new Error('วันที่ไม่ถูกต้อง');
+  if (!isYmd_(q.date)) throw new Error('วันที่ไม่ถูกต้อง');
   if (dep.days.indexOf(dow_(q.date)) < 0)
     throw new Error('แผนก' + dep.name + 'ไม่เปิดให้บริการในวันที่เลือก');
   if (HOLIDAYS.indexOf(q.date) > -1) throw new Error('วันที่เลือกเป็นวันหยุดให้บริการ');
@@ -347,8 +371,9 @@ function a_book(q) {
   var tel = String(q.tel || '').replace(/\D/g, '').slice(0, 10);
   if (tel.length < 9) throw new Error('เบอร์โทรศัพท์ไม่ถูกต้อง');
 
-  var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  var lock = LockService.getScriptLock(), ticket;
+  try { lock.waitLock(20000); }
+  catch (e) { throw new Error('ระบบกำลังมีผู้จองพร้อมกันจำนวนมาก กรุณากดยืนยันอีกครั้ง'); }
   try {
     var sh = book_(), all = rows_(sh);
 
@@ -377,7 +402,9 @@ function a_book(q) {
         if (String(r.userId) === u.userId) idCard = String(r.idCard || '').replace(/\D/g, '');
       });
     }
-    if (!validThaiId_(idCard)) throw new Error('เลขบัตรประชาชนไม่ถูกต้อง');
+    if (!validThaiId_(idCard)) throw new Error(q.idCard
+      ? 'เลขบัตรประชาชนไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง'
+      : 'ไม่พบเลขบัตรประชาชนที่บันทึกไว้ กรุณากรอกเลข 13 หลักอีกครั้ง');
 
     appendObj_(sh, {
       id: id, createdAt: now, userId: u.userId, displayName: cell_(clip_(u.displayName, MAX_NAME)),
@@ -387,13 +414,16 @@ function a_book(q) {
     });
     savePatient_(u.userId, name, idCard, tel, right);
     bumpVer_();
-
-    var pushed = pushTicket_(u.userId, { queueNo: queueNo, dept: q.dept, service: q.service,
-      date: q.date, slot: q.slot, name: name, right: right });
-    return { ok: true, id: id, queueNo: queueNo, pushed: pushed };
+    ticket = { id: id, queueNo: queueNo, dept: q.dept, service: q.service,
+               date: q.date, slot: q.slot, name: name, right: right };
   } finally {
     lock.releaseLock();
   }
+
+  /* ส่งบัตรคิวหลังปล่อยล็อกแล้ว — การเรียก LINE ใช้เวลาเป็นวินาที
+     ถ้าทำในล็อก คนที่จองพร้อมกันจะต้องรอต่อคิวกันจนอาจหมดเวลา */
+  var pushed = pushTicket_(u.userId, ticket);
+  return { ok: true, id: ticket.id, queueNo: ticket.queueNo, pushed: pushed };
 }
 
 function savePatient_(userId, name, idCard, tel, right) {
@@ -405,8 +435,10 @@ function savePatient_(userId, name, idCard, tel, right) {
   if (found) {
     obj.consentAt = found.consentAt || now;
     var head = head_(sh);
-    sh.getRange(found._row, 1, 1, head.length)
-      .setValues([head.map(function (h) { return obj[h] === undefined ? '' : obj[h]; })]);
+    /* คอลัมน์ที่ไม่ใช่ของระบบ (เจ้าหน้าที่เพิ่มเอง) ต้องคงค่าเดิมไว้ */
+    sh.getRange(found._row, 1, 1, head.length).setValues([head.map(function (h) {
+      return obj[h] !== undefined ? obj[h] : (found[h] === undefined ? '' : found[h]);
+    })]);
   } else {
     appendObj_(sh, obj);
   }
@@ -447,7 +479,8 @@ function mapRow_(r) {
   return { id: r.id, dept: r.dept, service: r.service, date: dateOf_(r), slot: r.slot,
            queueNo: r.queueNo, name: String(r.name || '').replace(/^'/, ''),
            tel: String(r.tel || '').replace(/^'/, ''), right: r.right,
-           note: String(r.note || '').replace(/^'/, ''), status: r.status };
+           note: String(r.note || '').replace(/^'/, ''), status: r.status,
+           calledAt: r.calledAt ? Utilities.formatDate(new Date(r.calledAt), TZ, 'HH:mm') : '' };
 }
 function bySlot_(a, b) {
   return a.slot < b.slot ? -1 : a.slot > b.slot ? 1 : (a.queueNo < b.queueNo ? -1 : a.queueNo > b.queueNo ? 1 : 0);
@@ -456,7 +489,7 @@ function bySlot_(a, b) {
 /** คิววันที่เลือก + นัดล่วงหน้าทั้งหมด ในคำขอเดียว อ่านชีตครั้งเดียวและแคช 45 วินาที */
 function a_board(q) {
   staff_(q);
-  var date = q.date || today_();
+  var date = isYmd_(q.date) ? q.date : today_();
   var ck = 'board|' + dataVer_() + '|' + date;
   var hit = cacheGet_(ck);
   if (hit) { hit.cached = true; return hit; }
@@ -477,7 +510,7 @@ function a_board(q) {
 
 function a_queue(q) {
   staff_(q);
-  var date = q.date || today_(), out = [];
+  var date = isYmd_(q.date) ? q.date : today_(), out = [];
   rows_(book_()).forEach(function (r) {
     if (dateOf_(r) !== date) return;
     if (q.dept && q.dept !== 'all' && r.dept !== q.dept) return;
@@ -502,8 +535,7 @@ function a_upcoming(q) {
 function a_range(q) {
   staff_(q);
   var from = String(q.from || ''), to = String(q.to || '');
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to))
-    throw new Error('ช่วงวันที่ไม่ถูกต้อง');
+  if (!isYmd_(from) || !isYmd_(to) || from > to) throw new Error('ช่วงวันที่ไม่ถูกต้อง');
   var ck = 'range|' + dataVer_() + '|' + from + '|' + to;
   var hit = cacheGet_(ck);
   if (hit) return hit;
@@ -531,10 +563,23 @@ function a_status(q) {
   var sh = book_(), hit = null;
   rows_(sh).forEach(function (r) { if (r.id === q.id) hit = r; });
   if (!hit) throw new Error('ไม่พบคิวนี้');
+  var was = hit.status;
   setCell_(sh, hit._row, 'status', q.status);
   setCell_(sh, hit._row, 'updatedAt', new Date());
   bumpVer_();
-  return { ok: true };
+
+  /* คนไข้ต้องรู้ทันทีเมื่อเจ้าหน้าที่ยกเลิกนัดให้ ไม่ใช่มารู้ตอนเดินทางมาถึง */
+  var notified = null;
+  if (q.status === 'cancelled' && was !== 'cancelled' && hit.userId) {
+    var dep = dept_(hit.dept) || { name: hit.dept };
+    notified = push_(String(hit.userId), [{ type: 'text',
+      text: 'แจ้งยกเลิกนัดหมาย\n\nหมายเลขคิว ' + hit.queueNo + '\n' + dep.name + ' · ' + hit.service +
+            '\n' + thDate_(dateOf_(hit), true) + ' เวลา ' + hit.slot + ' น.' +
+            '\n\nนัดหมายนี้ถูกยกเลิกโดยเจ้าหน้าที่' +
+            (q.reason ? '\nเหตุผล: ' + clip_(q.reason, 120) : '') +
+            '\nขออภัยในความไม่สะดวก กรุณาจองคิวใหม่ที่เมนู “จองคิวรับบริการ” หรือติดต่อ ' + ORG }]);
+  }
+  return { ok: true, notified: notified };
 }
 
 function a_call(q) {
@@ -544,7 +589,7 @@ function a_call(q) {
   if (!hit) throw new Error('ไม่พบคิวนี้');
   setCell_(sh, hit._row, 'calledAt', new Date());
   bumpVer_();
-  var dep = DEPTS[hit.dept] || { name: hit.dept };
+  var dep = dept_(hit.dept) || { name: hit.dept };
   var sent = push_(String(hit.userId), [{ type: 'text',
     text: 'ถึงคิวของท่านแล้ว\n\nหมายเลขคิว ' + hit.queueNo + '\n' + dep.name + ' · ' + hit.service +
           (q.room ? '\nเชิญที่ ' + clip_(q.room, 60) : '') + '\n\nกรุณาติดต่อเจ้าหน้าที่ค่ะ' }]);
@@ -586,7 +631,7 @@ function thDate_(s, full) {
 }
 
 function pushTicket_(userId, b) {
-  var dep = DEPTS[b.dept], acc = b.dept === 'dn' ? '#0B8B96' : '#12A37A';
+  var dep = dept_(b.dept) || { name: b.dept }, acc = b.dept === 'dn' ? '#0B8B96' : '#12A37A';
   function row(k, v) {
     return { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
       { type: 'text', text: k, color: '#87A49A', size: 'sm', flex: 2 },
@@ -623,7 +668,7 @@ function sendReminders() {
   rows_(sh).forEach(function (r) {
     if (dateOf_(r) !== target || r.status !== 'booked') return;
     if (r.remindedAt) { skipped++; return; }
-    var dep = DEPTS[r.dept] || { name: r.dept };
+    var dep = dept_(r.dept) || { name: r.dept };
     var ok = push_(String(r.userId), [{ type: 'text',
       text: 'เตือนนัดหมายพรุ่งนี้\n\nหมายเลขคิว ' + r.queueNo + '\n' + dep.name + ' · ' + r.service +
             '\n' + thDate_(target, true) + ' เวลา ' + r.slot + ' น.\n' + ORG +

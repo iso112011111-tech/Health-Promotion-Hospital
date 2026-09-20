@@ -8,3 +8,6 @@ README.md
 .env
 .env.*
 .vercel/
+
+# ชุดทดสอบ ไม่ต้องอัปขึ้นเว็บ
+tests/
