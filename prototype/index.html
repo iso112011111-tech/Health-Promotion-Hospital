@@ -465,7 +465,7 @@ function renderDay(){
     var taken=hash(st.dept+st.date+sl)%3===0;
     var b=document.createElement('button');b.className='slot';b.disabled=taken;
     b.setAttribute('aria-pressed',st.slot===sl?'true':'false');
-    b.innerHTML='<b>'+sl+'</b><small>'+(taken?'มีผู้จองแล้ว':'ว่าง')+'</small>';
+    b.innerHTML='<b>'+sl+'</b><small>'+(taken?'เต็มแล้ว':'ว่าง')+'</small>';
     b.onclick=function(){st.slot=sl;renderDay();document.getElementById('btn3').disabled=false};
     S.appendChild(b);
   });

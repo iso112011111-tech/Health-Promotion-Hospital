@@ -141,6 +141,7 @@ td.zero{color:var(--ink3)}
       <button data-t="up"   aria-selected="false">นัดล่วงหน้า<span class="badge" id="badge" hidden>0</span></button>
       <button data-t="done" aria-selected="false">เสร็จสิ้น</button>
       <button data-t="sum"  aria-selected="false">สรุปยอด</button>
+      <button data-t="off"  aria-selected="false">ปิดบริการ</button>
     </div>
 
     <div class="body" style="padding:0" id="pane"></div>
@@ -159,7 +160,9 @@ var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o || {},
 var dep = function (k) { return has(D, k) ? D[k] : null; };
 var K_KEY = 'nkt_staff_key', K_SEEN = 'nkt_seen_upcoming', K_SND = 'nkt_sound';
 var st = { key:'', date: bkkNow().date, tab:'now', filter:'all', range:7,
-           items:[], upcoming:[], seen:{}, sound:true, first:true, timer:null, bound:false };
+           items:[], upcoming:[], seen:{}, sound:true, first:true, timer:null, bound:false,
+           closures:null,
+           off: { dept:null, date: bkkNow().date, mode:'day', slots:{}, reason:'' } };
 
 $('orgsub').textContent = C.ORG;
 $('date').value = st.date;
@@ -204,6 +207,10 @@ var DEMO_UP = [
   { id:'u3', date:addDays(T,3), dept:'tm', slot:'09:00–10:00', queueNo:'ท-001', name:'สมพร มีทรัพย์', service:'พอกเข่า', tel:'0834445566', right:'ข้าราชการ', note:'', status:'booked' },
   { id:'u4', date:addDays(T,5), dept:'dn', slot:'14:00–15:00', queueNo:'ฟ-001', name:'ด.ญ.พิมพ์ ใจงาม', service:'เคลือบฟลูออไรด์', tel:'0845556677', right:'บัตรทอง (UC)', note:'', status:'booked' }
 ];
+var DEMO_OFF = [
+  { id:'c1', dept:'tm', date:addDays(T,2), slot:'', reason:'หมอไปราชการ' },
+  { id:'c2', dept:'dn', date:addDays(T,4), slot:'14:00–15:00', reason:'ประชุมวิชาการ' }
+];
 function demo(p){
   return new Promise(function(res){ setTimeout(function(){
     if (p.action === 'config')
@@ -226,6 +233,16 @@ function demo(p){
       res({ ok:true, from:p.from, to:p.to, days:days });
     }
     else if (p.action === 'status'){ DEMO_ROWS.forEach(function(r){ if (r.id === p.id) r.status = p.status; }); res({ ok:true }); }
+    else if (p.action === 'closures') res({ ok:true, items: DEMO_OFF.slice() });
+    else if (p.action === 'close'){
+      DEMO_OFF.push({ id:'c'+(DEMO_OFF.length+1), dept:p.dept, date:p.date,
+                      slot:p.slot||'', reason:p.reason||'' });
+      res({ ok:true, closed:true, cancelled:0, notified:0 });
+    }
+    else if (p.action === 'reopen'){
+      for (var i=0;i<DEMO_OFF.length;i++) if (DEMO_OFF[i].id === p.id) { DEMO_OFF.splice(i,1); break; }
+      res({ ok:true });
+    }
     else res({ ok:true, pushed:true });
   }, 180); });
 }
@@ -436,6 +453,159 @@ function render(){
   if (st.tab === 'up')   return renderUp(P);
   if (st.tab === 'done') return renderDone(P);
   if (st.tab === 'sum')  return renderSum(P);
+  if (st.tab === 'off')  return renderOff(P);
+}
+
+/* --- แท็บ 5 · ปิดบริการ / วันหยุด --- */
+function renderOff(P){
+  var o = st.off;
+  if (!o.dept || !dep(o.dept)) o.dept = Object.keys(D)[0];
+  var d = dep(o.dept);
+
+  P.appendChild(el('<p class="sechead">ปิดให้บริการ · เลือกแผนกที่ต้องการปิด</p>'));
+
+  var f = el('<div class="filters"></div>');
+  Object.keys(D).forEach(function(k){
+    var b = document.createElement('button');
+    b.textContent = D[k].name;
+    b.setAttribute('aria-pressed', o.dept === k ? 'true' : 'false');
+    b.onclick = function(){ o.dept = k; o.slots = {}; render(); };
+    f.appendChild(b);
+  });
+  P.appendChild(f);
+
+  var card = el('<div class="card" data-dept="' + o.dept + '">' +
+    '<div class="ch"><b>' + esc(d.name) + '</b><span class="n" style="font-size:12px">เปิด ' + esc(d.dayTxt) + '</span></div>' +
+    '<div style="padding:14px">' +
+      '<div class="field"><label>วันที่ต้องการปิด</label><input type="date" id="offdate"></div>' +
+      '<p class="label" style="margin-top:4px">ปิดแบบไหน</p>' +
+      '<div class="filters" id="offmode" style="padding:0 0 10px"></div>' +
+      '<div id="offslots"></div>' +
+      '<div class="field" style="margin-top:12px"><label>เหตุผล (ไม่บังคับ · คนไข้จะเห็นข้อความนี้)</label>' +
+        '<input id="offreason" maxlength="120" placeholder="เช่น หมอไปราชการ"></div>' +
+      '<button class="cta" id="offbtn">ปิดให้บริการ</button>' +
+    '</div></div>');
+  P.appendChild(card);
+
+  var dt = card.querySelector('#offdate');
+  dt.value = o.date; dt.min = bkkNow().date;
+  dt.onchange = function(){ o.date = isYmd(this.value) ? this.value : bkkNow().date; o.slots = {}; render(); };
+
+  var mode = card.querySelector('#offmode');
+  [['day','ปิดทั้งวัน'],['slot','เลือกเฉพาะบางช่วง']].forEach(function(m){
+    var b = document.createElement('button');
+    b.textContent = m[1];
+    b.setAttribute('aria-pressed', o.mode === m[0] ? 'true' : 'false');
+    b.onclick = function(){ o.mode = m[0]; render(); };
+    mode.appendChild(b);
+  });
+
+  var sl = card.querySelector('#offslots');
+  if (o.mode === 'slot'){
+    var grid = el('<div class="slots"></div>');
+    d.slots.forEach(function(x){
+      var b = document.createElement('button');
+      b.className = 'slot';
+      b.setAttribute('aria-pressed', o.slots[x] ? 'true' : 'false');
+      b.innerHTML = '<b>' + esc(x) + '</b><small>' + (o.slots[x] ? 'จะปิด' : 'แตะเพื่อเลือก') + '</small>';
+      b.onclick = function(){ o.slots[x] = !o.slots[x]; render(); };
+      grid.appendChild(b);
+    });
+    sl.appendChild(grid);
+  } else {
+    sl.appendChild(el('<p class="qsub" style="margin:0">ทุกช่วงเวลาของวันนี้จะถูกปิด และคนไข้จะเห็นวันนั้นเป็น “ปิด”</p>'));
+  }
+
+  var rs = card.querySelector('#offreason');
+  rs.value = o.reason;
+  rs.oninput = function(){ o.reason = this.value; };
+
+  card.querySelector('#offbtn').onclick = function(){
+    var btn = this;
+    var list = o.mode === 'day' ? [''] : Object.keys(o.slots).filter(function(k){ return o.slots[k]; });
+    if (!list.length) return alert('กรุณาเลือกช่วงเวลาที่ต้องการปิดอย่างน้อย 1 ช่วง');
+    btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ…';
+    closeRun(list, false)
+      .then(function(res){
+        var need = res.filter(function(r){ return r.j.needConfirm; });
+        if (!need.length) return res;
+        var lines = [];
+        need.forEach(function(r){
+          (r.j.items || []).forEach(function(it){
+            lines.push('  ' + it.queueNo + ' ' + it.name + ' (' + it.slot + ')');
+          });
+        });
+        var total = need.reduce(function(a, r){ return a + r.j.affected; }, 0);
+        if (!confirm('มีคิวที่จองไว้แล้ว ' + total + ' รายการในช่วงที่จะปิด\n\n' +
+                     lines.join('\n') + '\n\n' +
+                     'ยืนยันปิดบริการ? ระบบจะยกเลิกคิวเหล่านี้และส่งข้อความแจ้งคนไข้ทาง LINE ทันที'))
+          throw new Error('ยกเลิกการปิดบริการ');
+        btn.textContent = 'กำลังปิดและแจ้งคนไข้…';
+        return closeRun(list, true);
+      })
+      .then(function(res){
+        var c = res.reduce(function(a, r){ return a + (r.j.cancelled || 0); }, 0);
+        var n = res.reduce(function(a, r){ return a + (r.j.notified || 0); }, 0);
+        alert('ปิดบริการเรียบร้อย' + (c ? '\nยกเลิกคิว ' + c + ' รายการ · แจ้งคนไข้สำเร็จ ' + n + ' รายการ' : ''));
+        st.off.slots = {}; st.off.reason = ''; st.closures = null;
+        loadAll(true); render();
+      })
+      .catch(function(e){ if (e.message !== 'ยกเลิกการปิดบริการ') alert(e.message); })
+      .then(function(){ btn.disabled = false; btn.textContent = 'ปิดให้บริการ'; });
+  };
+
+  /* รายการที่ปิดไว้แล้ว */
+  P.appendChild(el('<p class="sechead">รายการที่ปิดไว้</p>'));
+  if (st.closures === null){
+    P.appendChild(el('<div class="empty">กำลังโหลด…</div>'));
+    api({ action:'closures' })
+      .then(function(j){ st.closures = j.items || []; if (st.tab === 'off') render(); })
+      .catch(function(e){ st.closures = []; showErr(e, true); });
+    return;
+  }
+  if (!st.closures.length){
+    P.appendChild(el('<div class="empty">ยังไม่มีวันหรือช่วงเวลาที่ปิดไว้</div>'));
+    return;
+  }
+  Object.keys(D).forEach(function(k){
+    var list = st.closures.filter(function(c){ return c.dept === k; });
+    if (!list.length) return;
+    P.appendChild(el('<div class="gh" data-dept="' + k + '"><span class="tag">' + esc(D[k].tag) +
+      '</span><b>' + esc(D[k].name) + '</b><span class="n">' + list.length + ' รายการ</span></div>'));
+    list.forEach(function(c){
+      var row = el('<div class="qrow" data-dept="' + k + '">' +
+        '<span class="who"><b>' + esc(thDate(c.date, true)) + '</b>' +
+        '<small>' + (c.slot ? 'ปิดช่วง ' + esc(c.slot) + ' น.' : 'ปิดทั้งวัน') +
+          ' · ' + esc(thUntil(c.date)) + '</small>' +
+        (c.reason ? '<span class="memo">' + esc(c.reason) + '</span>' : '') +
+        '</span></div>');
+      var b = document.createElement('button');
+      b.className = 'callbtn'; b.style.background = 'transparent';
+      b.style.color = 'var(--brand2)'; b.style.border = '1.5px solid var(--line)';
+      b.textContent = 'เปิดกลับ';
+      b.onclick = function(){
+        if (!confirm('เปิดให้บริการ ' + thDate(c.date) + (c.slot ? ' ช่วง ' + c.slot : ' ทั้งวัน') + ' อีกครั้ง?')) return;
+        b.disabled = true;
+        api({ action:'reopen', id: c.id })
+          .then(function(){ st.closures = null; render(); })
+          .catch(function(e){ alert(e.message); b.disabled = false; });
+      };
+      row.appendChild(b);
+      P.appendChild(row);
+    });
+  });
+}
+
+/** ยิงคำสั่งปิดทีละช่วง แล้วรวมผลลัพธ์ */
+function closeRun(list, force){
+  var o = st.off;
+  return list.reduce(function(chain, slot){
+    return chain.then(function(acc){
+      return api({ action:'close', dept:o.dept, date:o.date, slot:slot,
+                   reason:o.reason, cancelExisting: !!force })
+        .then(function(j){ acc.push({ slot: slot, j: j }); return acc; });
+    });
+  }, Promise.resolve([]));
 }
 
 /* --- แท็บ 1 · คิวรับบริการ --- */

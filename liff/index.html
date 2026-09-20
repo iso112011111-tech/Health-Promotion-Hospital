@@ -134,7 +134,7 @@ var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o || {},
 var dep = function (k) { return has(D, k) ? D[k] : null; };
 var app = $('app');
 var st = { step:0, dept:null, svc:null, date:null, slot:null,
-           profile:null, patient:null, counts:{}, countsLoaded:false, idToken:null, last:null };
+           profile:null, patient:null, counts:{}, closed:{}, countsLoaded:false, idToken:null, last:null };
 
 /* ---------- ร่างที่กรอกค้างไว้ กันข้อมูลหายเมื่อต้องเข้าสู่ระบบใหม่ ---------- */
 var DRAFT = 'nkt_draft';
@@ -287,7 +287,7 @@ function renderDepts(){
     b.querySelector('.opendays').textContent = 'เปิด ' + d.dayTxt;
     b.onclick = function(){
       st.dept = k; st.svc = null; st.date = null; st.slot = null;
-      st.counts = {}; st.countsLoaded = false;
+      st.counts = {}; st.closed = {}; st.countsLoaded = false;
       app.setAttribute('data-dept', k); renderSvc(); go(2);
     };
     g.appendChild(b);
@@ -316,15 +316,21 @@ $('btn2').onclick = function(){ go(3); };
 function loadCounts(){
   renderDays(); renderSlots();
   api({ action:'counts', dept: st.dept })
-    .then(function(j){ st.counts = j.counts || {}; })
-    .catch(function(){ st.counts = {}; })          /* โหลดไม่ได้ก็ให้กดได้ เซิร์ฟเวอร์จะตรวจซ้ำอยู่ดี */
+    .then(function(j){ st.counts = j.counts || {}; st.closed = j.closed || {}; })
+    .catch(function(){ st.counts = {}; st.closed = {}; })   /* โหลดไม่ได้ก็ให้กดได้ เซิร์ฟเวอร์ตรวจซ้ำอยู่ดี */
     .then(function(){ st.countsLoaded = true; renderDays(); renderSlots(); });
 }
 function cap(){ var d = D[st.dept]; return (d && d.cap) || 1; }
 
+/** เจ้าหน้าที่สั่งปิดไว้หรือเปล่า — คืนเหตุผล ถ้าไม่ปิดคืนค่าว่าง */
+function closedReason(key, sl){
+  return st.closed[key] || (sl ? st.closed[key + '|' + sl] : '') || '';
+}
+
 /** ช่วงเวลานี้ยังจองได้ไหม */
 function slotFree(key, sl, now){
   if (key === now.date && slotStart(sl) <= now.min) return false;   /* เลยเวลาไปแล้ว */
+  if (closedReason(key, sl)) return false;                          /* เจ้าหน้าที่ปิดไว้ */
   if (!st.countsLoaded) return true;                                /* ยังไม่รู้ ถือว่าว่างไว้ก่อน */
   return (st.counts[key + '|' + sl] || 0) < cap();
 }
@@ -334,6 +340,7 @@ function dayState(key, now){
   var d = D[st.dept];
   if (d.days.indexOf(dow(key)) < 0) return 'closed';
   if ((C.HOLIDAYS || []).indexOf(key) > -1) return 'closed';
+  if (st.closed[key]) return 'closed';                 /* เจ้าหน้าที่ปิดทั้งวัน */
   if (key === now.date && !C.ALLOW_SAME_DAY) return 'closed';
   return d.slots.some(function(sl){ return slotFree(key, sl, now); }) ? 'open' : 'full';
 }
@@ -345,7 +352,7 @@ function renderDays(){
   $('dayhint').textContent = 'แผนก' + d.name + 'เปิดให้บริการ ' + d.dayTxt +
     (C.ALLOW_SAME_DAY ? ' · จองวันนี้ได้ถ้ายังไม่เลยเวลา' : '');
   $('slotnote').textContent = '1 ช่วงเวลารับได้ ' + cap() + ' คิวเท่านั้น · ' +
-    'ช่วงที่มีผู้จองแล้วจะกดไม่ได้';
+    'ช่วงที่เต็มแล้วจะกดไม่ได้ เลือกช่วงถัดไปได้เลย';
 
   var row = $('dayrow'); row.innerHTML = '';
   var first = null, valid = false;
@@ -366,7 +373,7 @@ function renderDays(){
     b.setAttribute('aria-pressed', addDays(now.date, i) === st.date ? 'true' : 'false');
   });
   if (!first)
-    $('dayhint').textContent = 'ขณะนี้คิวแผนก' + d.name + 'เต็มทุกวันที่เปิดให้จอง ' +
+    $('dayhint').textContent = 'ขณะนี้คิวแผนก' + d.name + 'เต็มหรือปิดทุกวันที่เปิดให้จอง ' +
       'กรุณาลองใหม่ภายหลังหรือติดต่อเจ้าหน้าที่';
 }
 
@@ -379,13 +386,16 @@ function renderSlots(){
       var g = document.createElement('div'); g.className = 'gap'; g.textContent = 'พักกลางวัน'; S.appendChild(g);
     }
     var passed = st.date === now.date && slotStart(sl) <= now.min;
+    var shut   = closedReason(st.date, sl);
     var taken  = st.countsLoaded && (st.counts[st.date + '|' + sl] || 0) >= cap();
     var b = document.createElement('button');
-    b.className = 'slot'; b.disabled = passed || taken;
+    b.className = 'slot'; b.disabled = passed || taken || !!shut;
     b.setAttribute('aria-pressed', st.slot === sl ? 'true' : 'false');
-    b.innerHTML = '<b>' + sl + '</b><small>' +
-      (passed ? 'เลยเวลาแล้ว' : taken ? 'มีผู้จองแล้ว'
-              : !st.countsLoaded ? 'กำลังตรวจสอบ…' : 'ว่าง') + '</small>';
+    b.innerHTML = '<b>' + sl + '</b><small></small>';
+    b.querySelector('small').textContent =
+      shut ? (shut === 'ปิดให้บริการ' ? 'ปิดให้บริการ' : 'ปิด · ' + shut)
+    : passed ? 'เลยเวลาแล้ว' : taken ? 'เต็มแล้ว'
+    : !st.countsLoaded ? 'กำลังตรวจสอบ…' : 'ว่าง';
     b.onclick = function(){ st.slot = sl; renderSlots(); };
     S.appendChild(b);
   });
@@ -420,6 +430,7 @@ $('f-tel').addEventListener('input', function(){ this.value = fmtTel(this.value)
 function syncBtn4(){ $('formerr').hidden = true; }
 
 $('btn4').onclick = function(){
+  $('formerr').hidden = true;          /* ล้างข้อความจากครั้งก่อน ไม่งั้นดูเหมือนกดแล้วไม่มีอะไรเกิดขึ้น */
   var name = $('f-name').value.trim(), id = $('f-id').value, tel = $('f-tel').value;
   var hasSaved = !!(st.patient && st.patient.hasIdCard);
   var ok = true;

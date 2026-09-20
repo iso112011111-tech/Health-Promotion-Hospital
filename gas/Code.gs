@@ -16,7 +16,7 @@
  * หน้าเว็บจะดึงค่าจาก a_config ตอนเปิด ไม่ต้องแก้ config.js ให้ตรงกันอีก
  *********************************************************************/
 
-var VERSION = '2026-09-20.9';
+var VERSION = '2026-09-20.12';
 
 /* ============ ตารางบริการ — แก้ที่นี่ที่เดียว ============ */
 var DEPTS = {
@@ -43,8 +43,12 @@ var ORG_SHORT = 'รพ.สต.หนองครกใต้';
 var ARRIVE_BEFORE = 15;
 var BOOK_AHEAD_DAYS = 14;
 var ALLOW_SAME_DAY = true;
-var MAX_ACTIVE = 4;                // จำนวนคิวที่ยังไม่ถึงวันนัด ต่อ 1 คน
+var MAX_ACTIVE = 8;                // จำนวนคิวที่ยังไม่ถึงวันนัด ต่อ 1 คน
+                                   // กันคนจองรัว ๆ จนคนอื่นไม่เหลือช่วงให้จอง
+                                   // 8 = พอสำหรับคอร์สนวดต่อเนื่องประมาณ 2 สัปดาห์
 var CAP_PER_SLOT = 1;              // รับได้กี่คิวต่อ 1 ช่วงเวลา (ตั้งรายแผนกได้ที่ cap ใน DEPTS)
+var ONE_PER_DAY = false;           // true = 1 คนจองแผนกเดิมได้วันละคิวเดียว
+                                   // false = จองได้หลายช่วงในวันเดียวกัน ตราบใดที่ช่วงนั้นยังว่าง
 var TZ = 'Asia/Bangkok';
 
 /* ความยาวสูงสุดของข้อความที่รับจากผู้ใช้ */
@@ -56,6 +60,8 @@ var STAFF_MAX_FAIL = 5, STAFF_LOCK_MIN = 15, STAFF_FAIL_DELAY_MS = 1200;
 var BOOK_COLS = ['id','createdAt','userId','displayName','dept','service','date','slot','queueNo',
                  'name','idCard','tel','right','note','status','calledAt','updatedAt','remindedAt'];
 var PAT_COLS  = ['userId','name','idCard','tel','right','consentAt','updatedAt'];
+/* ปิดให้บริการ — slot ว่าง = ปิดทั้งวัน · มีค่า = ปิดเฉพาะช่วงนั้น · แยกตามแผนก */
+var CLOSE_COLS = ['id','dept','date','slot','reason','createdAt'];
 
 /* ================================================================= */
 /*  จุดรับคำขอ                                                       */
@@ -71,6 +77,9 @@ function doPost(e) {
       mine:     a_mine,
       cancel:   a_cancel,
       board:    a_board,      // เจ้าหน้าที่ — คิววันนี้ + นัดล่วงหน้า ในคำขอเดียว
+      closures: a_closures,   // เจ้าหน้าที่ — รายการวัน/ช่วงเวลาที่ปิด
+      close:    a_close,      // เจ้าหน้าที่ — ปิดให้บริการ
+      reopen:   a_reopen,     // เจ้าหน้าที่ — เปิดกลับ
       queue:    a_queue,      // เจ้าหน้าที่
       upcoming: a_upcoming,   // เจ้าหน้าที่
       range:    a_range,      // เจ้าหน้าที่
@@ -94,7 +103,8 @@ function err_(code, msg) { var e = new Error(msg); e.appCode = code; return e; }
 function doGet() {
   return json({
     ok: true, service: 'ระบบจองคิว ' + ORG, version: VERSION,
-    actions: ['config','init','counts','book','mine','cancel','board','queue','upcoming','range','status','call'],
+    actions: ['config','init','counts','book','mine','cancel','board','closures','close','reopen',
+              'queue','upcoming','range','status','call'],
     time: Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss')
   });
 }
@@ -138,8 +148,9 @@ function validThaiId_(s) {
 }
 
 /* ---------------- ชีต ---------------- */
-function book_() { return sheet_('bookings', BOOK_COLS); }
-function pat_()  { return sheet_('patients', PAT_COLS); }
+function book_()  { return sheet_('bookings', BOOK_COLS); }
+function pat_()   { return sheet_('patients', PAT_COLS); }
+function close_() { return sheet_('closures', CLOSE_COLS); }
 
 /** สร้างชีตถ้ายังไม่มี และเติมคอลัมน์ที่ขาดให้ชีตเดิมโดยไม่แตะข้อมูลเก่า */
 function sheet_(name, cols) {
@@ -294,6 +305,33 @@ function maskId_(n) {
   return n.length === 13 ? n.slice(0, 4) + ' •••••• ' + n.slice(-2) : '';
 }
 
+/* ---------------- ปิดให้บริการ ---------------- */
+function closures_(fromDate) {
+  var out = [];
+  rows_(close_()).forEach(function (r) {
+    var d = dateOf_(r);
+    if (fromDate && d < fromDate) return;
+    out.push({ id: r.id, dept: r.dept, date: d,
+               slot: String(r.slot || ''), reason: String(r.reason || '') });
+  });
+  out.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : (a.slot < b.slot ? -1 : 1); });
+  return out;
+}
+
+/**
+ * แผนผังว่าอะไรถูกปิดบ้างของแผนกหนึ่ง
+ *   key 'YYYY-MM-DD'              = ปิดทั้งวัน
+ *   key 'YYYY-MM-DD|09:00–10:00'  = ปิดเฉพาะช่วงนั้น
+ */
+function closedMap_(dept, fromDate) {
+  var m = {};
+  closures_(fromDate).forEach(function (c) {
+    if (c.dept !== dept) return;
+    m[c.slot ? c.date + '|' + c.slot : c.date] = c.reason || 'ปิดให้บริการ';
+  });
+  return m;
+}
+
 /* ================================================================= */
 /*  ตารางเวลา (เปิดสาธารณะ — ไม่มีข้อมูลบุคคล)                       */
 /* ================================================================= */
@@ -301,7 +339,8 @@ function a_config() {
   return {
     ok: true, version: VERSION,
     org: ORG, orgShort: ORG_SHORT,
-    depts: DEPTS, rights: RIGHTS, holidays: HOLIDAYS, capPerSlot: CAP_PER_SLOT,
+    depts: DEPTS, rights: RIGHTS, holidays: HOLIDAYS,
+    capPerSlot: CAP_PER_SLOT, onePerDay: ONE_PER_DAY,
     allowSameDay: ALLOW_SAME_DAY, bookAheadDays: BOOK_AHEAD_DAYS, arriveBefore: ARRIVE_BEFORE
   };
 }
@@ -337,7 +376,7 @@ function a_counts(q) {
     var k = d + '|' + r.slot;
     counts[k] = (counts[k] || 0) + 1;
   });
-  return { ok: true, counts: counts };
+  return { ok: true, counts: counts, closed: closedMap_(q.dept, from) };
 }
 
 function a_book(q) {
@@ -352,6 +391,15 @@ function a_book(q) {
   if (dep.days.indexOf(dow_(q.date)) < 0)
     throw new Error('แผนก' + dep.name + 'ไม่เปิดให้บริการในวันที่เลือก');
   if (HOLIDAYS.indexOf(q.date) > -1) throw new Error('วันที่เลือกเป็นวันหยุดให้บริการ');
+
+  var cmap = closedMap_(q.dept, today_());
+  if (cmap[q.date])
+    throw new Error('วันที่เลือกปิดให้บริการแผนก' + dep.name +
+                    (cmap[q.date] !== 'ปิดให้บริการ' ? ' — ' + cmap[q.date] : ''));
+  if (cmap[q.date + '|' + q.slot])
+    throw new Error('ช่วงเวลา ' + q.slot + ' น. ปิดให้บริการ' +
+                    (cmap[q.date + '|' + q.slot] !== 'ปิดให้บริการ' ? ' — ' + cmap[q.date + '|' + q.slot] : '') +
+                    ' กรุณาเลือกช่วงอื่น');
 
   var todayS = today_();
   if (q.date < todayS) throw new Error('ไม่สามารถจองย้อนหลังได้');
@@ -381,9 +429,20 @@ function a_book(q) {
     var mine = all.filter(function (r) {
       return String(r.userId) === u.userId && r.status !== 'cancelled';
     });
-    var dup = mine.filter(function (r) { return r.dept === q.dept && dateOf_(r) === q.date; });
-    if (dup.length)
-      throw new Error('คุณมีคิวแผนก' + dep.name + 'ในวันดังกล่าวอยู่แล้ว (' + dup[0].queueNo + ')');
+
+    /* กันคนเดิมจองช่วงเวลาเดิมซ้ำ — คนละเรื่องกับ ONE_PER_DAY ตรงนี้กันกดซ้ำเฉย ๆ */
+    var same = mine.filter(function (r) {
+      return r.dept === q.dept && dateOf_(r) === q.date && r.slot === q.slot;
+    });
+    if (same.length)
+      throw new Error('คุณจองช่วงเวลานี้ไว้แล้ว (' + same[0].queueNo + ')');
+
+    if (ONE_PER_DAY) {
+      var dup = mine.filter(function (r) { return r.dept === q.dept && dateOf_(r) === q.date; });
+      if (dup.length)
+        throw new Error('คุณมีคิวแผนก' + dep.name + 'ในวันดังกล่าวอยู่แล้ว (' + dup[0].queueNo + ')' +
+                        ' หากต้องการเปลี่ยนเวลา กรุณายกเลิกคิวเดิมที่เมนู “คิวของฉัน” ก่อน');
+    }
 
     var active = mine.filter(function (r) { return dateOf_(r) >= todayS; }).length;
     if (active >= MAX_ACTIVE)
@@ -397,7 +456,7 @@ function a_book(q) {
              r.slot === q.slot && r.status !== 'cancelled';
     }).length;
     if (taken >= cap)
-      throw new Error('ช่วงเวลา ' + q.slot + ' น. มีผู้จองแล้ว กรุณาเลือกช่วงเวลาอื่น');
+      throw new Error('ช่วงเวลา ' + q.slot + ' น. เต็มแล้ว กรุณาเลือกช่วงเวลาอื่น');
 
     /* เลขคิวไล่ตามลำดับ แยกตามแผนกและวัน */
     var n = 0;
@@ -566,6 +625,83 @@ function a_range(q) {
   return res;
 }
 
+/** รายการวัน/ช่วงเวลาที่ปิด ตั้งแต่วันนี้เป็นต้นไป */
+function a_closures(q) {
+  staff_(q);
+  var list = closures_(today_()).map(function (c) {
+    c.deptName = (dept_(c.dept) || {}).name || c.dept;
+    return c;
+  });
+  return { ok: true, items: list };
+}
+
+/**
+ * ปิดให้บริการ — ส่ง slot ว่างมาคือปิดทั้งวัน
+ * ถ้ามีคิวค้างอยู่ รอบแรกจะตอบ needConfirm กลับไปก่อน ไม่ปิดทันที
+ * เพื่อให้เจ้าหน้าที่เห็นว่ากระทบใครบ้างแล้วค่อยตัดสินใจ
+ */
+function a_close(q) {
+  staff_(q);
+  var dep = dept_(q.dept);
+  if (!dep) throw new Error('ไม่พบแผนกที่เลือก');
+  if (!isYmd_(q.date)) throw new Error('วันที่ไม่ถูกต้อง');
+  if (q.date < today_()) throw new Error('ปิดบริการย้อนหลังไม่ได้');
+  var slot = String(q.slot || '');
+  if (slot && dep.slots.indexOf(slot) < 0) throw new Error('ช่วงเวลาไม่ถูกต้อง');
+
+  var sh = book_();
+  var affected = rows_(sh).filter(function (r) {
+    return r.dept === q.dept && dateOf_(r) === q.date && r.status !== 'cancelled' &&
+           (!slot || r.slot === slot);
+  });
+  if (affected.length && !q.cancelExisting) {
+    return { ok: true, needConfirm: true, affected: affected.length,
+             items: affected.map(function (r) {
+               return { queueNo: r.queueNo, name: String(r.name || '').replace(/^'/, ''),
+                        slot: r.slot, tel: String(r.tel || '').replace(/^'/, '') };
+             }) };
+  }
+
+  var dup = closures_().filter(function (c) {
+    return c.dept === q.dept && c.date === q.date && c.slot === slot;
+  });
+  if (!dup.length) {
+    appendObj_(close_(), {
+      id: Utilities.getUuid().slice(0, 8), dept: q.dept, date: q.date, slot: slot,
+      reason: cell_(clip_(q.reason, 120)), createdAt: new Date()
+    });
+  }
+
+  var cancelled = 0, notified = 0;
+  affected.forEach(function (r) {
+    setCell_(sh, r._row, 'status', 'cancelled');
+    setCell_(sh, r._row, 'updatedAt', new Date());
+    cancelled++;
+    if (!r.userId) return;
+    var ok = push_(String(r.userId), [{ type: 'text',
+      text: 'แจ้งยกเลิกนัดหมาย\n\nหมายเลขคิว ' + r.queueNo + '\n' + dep.name + ' · ' + r.service +
+            '\n' + thDate_(q.date, true) + ' เวลา ' + r.slot + ' น.' +
+            '\n\n' + ORG + ' งดให้บริการ' + (slot ? 'ช่วงเวลาดังกล่าว' : 'ในวันดังกล่าว') +
+            (q.reason ? '\nเหตุผล: ' + clip_(q.reason, 120) : '') +
+            '\nขออภัยในความไม่สะดวก กรุณาจองคิวใหม่ที่เมนู “จองคิวรับบริการ”' }]);
+    if (ok) notified++;
+  });
+
+  bumpVer_();
+  return { ok: true, closed: true, cancelled: cancelled, notified: notified };
+}
+
+/** เปิดกลับ — ลบรายการปิดออก */
+function a_reopen(q) {
+  staff_(q);
+  var sh = close_(), hit = null;
+  rows_(sh).forEach(function (r) { if (r.id === q.id) hit = r; });
+  if (!hit) throw new Error('ไม่พบรายการปิดบริการนี้');
+  sh.deleteRow(hit._row);
+  bumpVer_();
+  return { ok: true };
+}
+
 function a_status(q) {
   staff_(q);
   if (['booked','checkin','done','noshow','cancelled'].indexOf(q.status) < 0)
@@ -692,7 +828,7 @@ function sendReminders() {
 /*  ติดตั้ง / อัปเกรด — รันฟังก์ชันนี้หลังวางโค้ดใหม่ทุกครั้ง         */
 /* ================================================================= */
 function setup() {
-  book_(); pat_();                 /* สร้างชีต และเติมคอลัมน์ที่ขาด เช่น remindedAt */
+  book_(); pat_(); close_();       /* สร้างชีต และเติมคอลัมน์ที่ขาด เช่น remindedAt */
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'sendReminders') ScriptApp.deleteTrigger(t);
   });
