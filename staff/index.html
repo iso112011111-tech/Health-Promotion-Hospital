@@ -116,6 +116,12 @@ td.zero{color:var(--ink3)}
   <!-- หน้าหลัก -->
   <div id="main" hidden style="display:flex;flex-direction:column;flex:1;min-height:0">
 
+    <div class="errbar" id="errbar" hidden>
+      <span>⚠︎</span>
+      <span><b id="errtxt"></b><small>ข้อมูลที่เห็นอาจไม่เป็นปัจจุบัน อย่าเพิ่งสรุปว่าไม่มีคิว</small></span>
+      <button id="errretry">ลองใหม่</button>
+    </div>
+
     <div class="alert" id="alert" hidden>
       <span class="bell">🔔</span>
       <span><b id="alerttxt"></b><small id="alertsub"></small></span>
@@ -146,11 +152,12 @@ td.zero{color:var(--ink3)}
 <script>
 (function () {
 'use strict';
-var C = window.APP_CONFIG, D = C.DEPTS;
+var C = window.APP_CONFIG;
+var D = C.DEPTS;                     /* เซิร์ฟเวอร์เขียนทับตอนเข้าสู่ระบบ */
 var $ = function (id) { return document.getElementById(id); };
 var K_KEY = 'nkt_staff_key', K_SEEN = 'nkt_seen_upcoming', K_SND = 'nkt_sound';
-var st = { key:'', date: bkkNow().date, tab:'now', filter:'all',
-           items:[], upcoming:[], seen:{}, sound:true, first:true, timer:null };
+var st = { key:'', date: bkkNow().date, tab:'now', filter:'all', range:7,
+           items:[], upcoming:[], seen:{}, sound:true, first:true, timer:null, bound:false };
 
 $('orgsub').textContent = C.ORG;
 $('date').value = st.date;
@@ -168,7 +175,12 @@ function api(p){
   if (C.DEMO) return demo(p);
   return fetch(C.API_URL, { method:'POST', body: JSON.stringify(p) })
     .then(function(r){ return r.json(); })
-    .then(function(j){ if (!j.ok) throw new Error(j.error || 'ระบบขัดข้อง'); return j; });
+    .catch(function(){ var e = new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ตรวจสอบสัญญาณอินเทอร์เน็ต');
+                       e.code = 'NETWORK'; throw e; })
+    .then(function(j){
+      if (!j.ok){ var e = new Error(j.error || 'ระบบขัดข้อง'); e.code = j.code || 'ERROR'; throw e; }
+      return j;
+    });
 }
 
 /* ---------------- ข้อมูลตัวอย่างสำหรับโหมด DEMO ---------------- */
@@ -192,12 +204,16 @@ var DEMO_UP = [
 ];
 function demo(p){
   return new Promise(function(res){ setTimeout(function(){
-    if (p.action === 'queue')
-      res({ ok:true, date:p.date, items: DEMO_ROWS.filter(function(r){ return r.date === p.date; }) });
-    else if (p.action === 'upcoming') res({ ok:true, items: DEMO_UP.slice(), today:T });
+    if (p.action === 'config')
+      res({ ok:true, depts:C.DEPTS, rights:C.RIGHTS, holidays:C.HOLIDAYS, org:C.ORG,
+            allowSameDay:C.ALLOW_SAME_DAY, bookAheadDays:C.BOOK_AHEAD_DAYS, arriveBefore:C.ARRIVE_BEFORE });
+    else if (p.action === 'board')
+      res({ ok:true, date:p.date, today:T,
+            items: DEMO_ROWS.filter(function(r){ return r.date === p.date; }),
+            upcoming: DEMO_UP.slice() });
     else if (p.action === 'range'){
       var days = {};
-      for (var i=0;i<14;i++){
+      for (var i=0;i<31;i++){
         var k = addDays(p.to, -i); if (k < p.from) break;
         if (dow(k) === 0 || dow(k) === 6) continue;
         var h = 0; for (var j=0;j<k.length;j++) h = (h*31 + k.charCodeAt(j)) >>> 0;
@@ -209,7 +225,7 @@ function demo(p){
       res({ ok:true, from:p.from, to:p.to, days:days });
     }
     else if (p.action === 'status'){ DEMO_ROWS.forEach(function(r){ if (r.id === p.id) r.status = p.status; }); res({ ok:true }); }
-    else res({ ok:true });
+    else res({ ok:true, pushed:true });
   }, 180); });
 }
 
@@ -217,75 +233,111 @@ function demo(p){
 st.key = ls(K_KEY) || '';
 if (C.DEMO) st.key = 'demo';
 
+function loginErr(msg){
+  var w = $('w-key'), p = w.querySelector('.err');
+  w.classList.add('bad'); p.textContent = msg; p.hidden = false;
+}
 $('btnlogin').onclick = function(){
   var k = $('key').value.trim(); if (!k) return;
-  st.key = k; this.disabled = true; this.textContent = 'กำลังตรวจสอบ…';
   var btn = this;
-  api({ action:'queue', date: st.date })
+  st.key = k; btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ…';
+  api({ action:'board', date: st.date })
     .then(function(){ ls(K_KEY, k); enter(); })
-    .catch(function(e){
-      var w = $('w-key'), p = w.querySelector('.err');
-      w.classList.add('bad'); p.textContent = e.message; p.hidden = false;
-      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
-    });
+    .catch(function(e){ loginErr(e.message); btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ'; });
 };
 $('key').addEventListener('keydown', function(e){ if (e.key === 'Enter') $('btnlogin').click(); });
 $('logout').onclick = function(){ try { localStorage.removeItem(K_KEY); } catch (e) {} location.reload(); };
 
+function applyConfig(j){
+  if (!j) return;
+  if (j.depts && Object.keys(j.depts).length){ C.DEPTS = j.depts; D = j.depts; }
+  if (j.rights) C.RIGHTS = j.rights;
+  if (j.org){ C.ORG = j.org; $('orgsub').textContent = j.org; }
+}
 function enter(){
   $('login').hidden = true; $('main').hidden = false;
   $('logout').hidden = false; $('sound').hidden = false;
   $('sound').setAttribute('aria-pressed', st.sound ? 'true' : 'false');
-  loadAll();
-  st.timer = setInterval(function(){ if (!document.hidden) loadAll(true); }, 60000);
-  document.addEventListener('visibilitychange', function(){ if (!document.hidden) loadAll(true); });
+  api({ action:'config' }).then(applyConfig).catch(function(){}).then(function(){
+    loadAll();
+    if (!st.timer) st.timer = setInterval(function(){ if (!document.hidden) loadAll(true); }, 60000);
+    if (!st.bound){
+      st.bound = true;
+      document.addEventListener('visibilitychange', function(){ if (!document.hidden) loadAll(true); });
+    }
+  });
 }
+function toLogin(msg){
+  if (st.timer){ clearInterval(st.timer); st.timer = null; }
+  try { localStorage.removeItem(K_KEY); } catch (e) {}
+  st.key = '';
+  $('main').hidden = true; $('login').hidden = false;
+  $('logout').hidden = true; $('sound').hidden = true;
+  $('btnlogin').disabled = false; $('btnlogin').textContent = 'เข้าสู่ระบบ';
+  loginErr(msg);
+}
+
+/* เสียงเตือน — ใช้ AudioContext ตัวเดียวตลอด เบราว์เซอร์จำกัดจำนวนไว้ */
+var AC = null;
 $('sound').onclick = function(){
   st.sound = !st.sound; ls(K_SND, st.sound ? '1' : '0');
   this.setAttribute('aria-pressed', st.sound ? 'true' : 'false');
+  if (st.sound) beep();
 };
 function beep(){
   if (!st.sound) return;
   try {
-    var a = new (window.AudioContext || window.webkitAudioContext)();
+    var Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    if (!AC || AC.state === 'closed') AC = new Ctx();
+    if (AC.state === 'suspended') AC.resume();
     [880, 1180].forEach(function(f, i){
-      var o = a.createOscillator(), g = a.createGain();
+      var o = AC.createOscillator(), g = AC.createGain(), t0 = AC.currentTime + i * 0.16;
       o.type = 'sine'; o.frequency.value = f;
-      g.gain.setValueAtTime(0.0001, a.currentTime + i*0.16);
-      g.gain.exponentialRampToValueAtTime(0.14, a.currentTime + i*0.16 + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + i*0.16 + 0.15);
-      o.connect(g); g.connect(a.destination);
-      o.start(a.currentTime + i*0.16); o.stop(a.currentTime + i*0.16 + 0.16);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.14, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.15);
+      o.connect(g); g.connect(AC.destination);
+      o.start(t0); o.stop(t0 + 0.16);
     });
   } catch (e) {}
 }
 
 /* ---------------- โหลดข้อมูล ---------------- */
+function pad(n){ return ('0' + n).slice(-2); }
+function hideErr(){ $('errbar').hidden = true; }
+function showErr(e, quiet){
+  if (e.code === 'STAFF_AUTH') return toLogin(e.message);
+  $('errbar').hidden = false;
+  $('errtxt').textContent = 'โหลดข้อมูลไม่สำเร็จ · ' + e.message;
+  if (!quiet) $('pane').innerHTML = '<div class="empty">ยังโหลดข้อมูลไม่ได้ กดลองใหม่ด้านบน</div>';
+}
+$('errretry').onclick = function(){ hideErr(); loadAll(); };
+
 function loadAll(quiet){
   if (!quiet) $('pane').innerHTML = '<div class="empty">กำลังโหลด…</div>';
-  Promise.all([
-    api({ action:'queue', date: st.date }).catch(function(){ return { items: [] }; }),
-    api({ action:'upcoming' }).catch(function(){ return { items: [] }; })
-  ]).then(function(r){
-    st.items = r[0].items || [];
-    var before = newOnes(st.upcoming).length;
-    st.upcoming = r[1].items || [];
-    var after = newOnes(st.upcoming).length;
-    if (!st.first && after > before) beep();
-    st.first = false;
-    var n = bkkNow();
-    $('stamp').textContent = 'อัปเดต ' + ('0'+Math.floor(n.min/60)).slice(-2) + ':' + ('0'+(n.min%60)).slice(-2);
-    renderAlert(); render();
-  });
+  api({ action:'board', date: st.date })
+    .then(function(j){
+      hideErr();
+      st.items = j.items || [];
+      var before = newOnes(st.upcoming).length;
+      st.upcoming = j.upcoming || [];
+      var after = newOnes(st.upcoming).length;
+      if (!st.first && after > before) beep();
+      st.first = false;
+      var n = bkkNow();
+      $('stamp').textContent = 'อัปเดต ' + pad(Math.floor(n.min / 60)) + ':' + pad(n.min % 60);
+      renderAlert(); render();
+    })
+    .catch(function(e){ showErr(e, quiet); });
 }
-function newOnes(list){ return (list||[]).filter(function(r){ return !st.seen[r.id]; }); }
+function newOnes(list){ return (list || []).filter(function(r){ return !st.seen[r.id]; }); }
 function markSeen(){
-  st.upcoming.forEach(function(r){ st.seen[r.id] = 1; });
   var keep = {}; st.upcoming.forEach(function(r){ keep[r.id] = 1; });
   st.seen = keep; ls(K_SEEN, JSON.stringify(keep));
 }
 
-$('date').onchange  = function(){ st.date = this.value; loadAll(); };
+$('date').onchange    = function(){ st.date = this.value; loadAll(); };
 $('todaybtn').onclick = function(){ st.date = bkkNow().date; $('date').value = st.date; loadAll(); };
 $('refresh').onclick  = function(){ loadAll(); };
 $('alertgo').onclick  = function(){ setTab('up'); };
@@ -296,7 +348,7 @@ function setTab(t){
     b.setAttribute('aria-selected', b.getAttribute('data-t') === t ? 'true' : 'false');
   });
   render();
-  if (t === 'up'){ setTimeout(function(){ markSeen(); renderAlert(); renderBadge(); }, 1200); }
+  if (t === 'up') setTimeout(function(){ markSeen(); renderAlert(); }, 1200);
 }
 
 /* ---------------- แจ้งเตือน ---------------- */
@@ -310,9 +362,9 @@ function renderAlert(){
   if (!fresh.length){ $('alert').hidden = true; return; }
   $('alert').hidden = false;
   $('alerttxt').textContent = 'มีนัดจองล่วงหน้าใหม่ ' + fresh.length + ' รายการ';
-  var soonest = fresh.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; })[0];
-  $('alertsub').textContent = 'ใกล้ที่สุด · ' + thUntil(soonest.date) + ' ' + thDate(soonest.date) +
-    ' · ' + (D[soonest.dept] ? D[soonest.dept].name : soonest.dept) + ' · ' + soonest.name;
+  var soon = fresh.slice().sort(function(a,b){ return a.date < b.date ? -1 : 1; })[0];
+  $('alertsub').textContent = 'ใกล้ที่สุด · ' + thUntil(soon.date) + ' ' + thDate(soon.date) +
+    ' · ' + ((D[soon.dept] && D[soon.dept].name) || soon.dept) + ' · ' + soon.name;
 }
 
 /* ---------------- แสดงผล ---------------- */
@@ -329,7 +381,7 @@ function qrow(r, opts){
   e.setAttribute('data-dept', r.dept);
   if (opts.isNew) e.classList.add('isnew');
   e.innerHTML =
-    '<span class="time">' + esc(opts.showDate ? thShort(r.date) : r.slot.split('–')[0]) + '</span>' +
+    '<span class="time">' + esc(opts.showDate ? thShort(r.date) : String(r.slot).split('–')[0]) + '</span>' +
     '<span class="code">' + esc(r.queueNo) + '</span>' +
     '<span class="who"><b>' + esc(r.name) +
       (opts.isNew ? ' <span class="chip bad">ใหม่</span>' : '') +
@@ -338,36 +390,36 @@ function qrow(r, opts){
       '<small>' + esc(r.tel || '') + (r.right ? ' · ' + esc(r.right) : '') +
         (opts.showDate ? ' · ' + esc(r.slot) + ' น.' : '') + '</small>' +
       (r.note ? '<span class="memo">' + esc(r.note) + '</span>' : '') +
-      '<span class="acts"></span></span>';
-  var acts = e.querySelector('.acts');
-  function add(txt, status, pri){
-    var b = document.createElement('button');
-    b.textContent = txt; if (pri) b.className = 'pri';
-    b.onclick = function(){
-      b.disabled = true;
-      var call = status === 'call' ? api({ action:'call', id:r.id })
-                                   : api({ action:'status', id:r.id, status:status });
-      call.then(function(){ loadAll(true); })
-          .catch(function(e2){ alert(e2.message); b.disabled = false; });
-    };
-    acts.appendChild(b);
-  }
+    '</span>';
+  var who = e.querySelector('.who');
   if (opts.actions !== false){
+    var acts = document.createElement('span'); acts.className = 'acts';
+    function add(txt, status, pri){
+      var b = document.createElement('button');
+      b.textContent = txt; if (pri) b.className = 'pri';
+      b.onclick = function(){
+        b.disabled = true;
+        var run = status === 'call' ? api({ action:'call', id:r.id })
+                                    : api({ action:'status', id:r.id, status:status });
+        run.then(function(res){
+              if (status === 'call' && res && res.pushed === false)
+                alert('บันทึกการเรียกคิวแล้ว แต่ส่งข้อความเข้า LINE ไม่สำเร็จ กรุณาเรียกด้วยเสียงด้วย');
+              loadAll(true);
+            })
+            .catch(function(e2){ showErr(e2, true); b.disabled = false; });
+      };
+      acts.appendChild(b);
+    }
     if (r.status === 'booked'){
-      if (!opts.showDate) add('เรียกคิว', 'call', true);
-      add('เช็คอิน', 'checkin'); add('ไม่มา', 'noshow');
+      add('เรียกคิว', 'call', true); add('เช็คอิน', 'checkin'); add('ไม่มา', 'noshow');
     } else if (r.status === 'checkin'){
       add('เสร็จสิ้น', 'done', true); add('ไม่มา', 'noshow');
     } else if (r.status === 'done' || r.status === 'noshow'){
       add('ย้อนกลับเป็นรอเรียก', 'booked');
     }
+    if (acts.children.length) who.appendChild(acts);
   }
   return e;
-}
-function groupHead(tag, title, n){
-  return el('<div class="gh"' + (tag.dept ? ' data-dept="' + tag.dept + '"' : '') + '>' +
-    (tag.tag ? '<span class="tag">' + esc(tag.tag) + '</span>' : '') +
-    '<b>' + esc(title) + '</b><span class="n">' + n + ' รายการ</span></div>');
 }
 
 function render(){
@@ -378,16 +430,17 @@ function render(){
   if (st.tab === 'sum')  return renderSum(P);
 }
 
-/* --- แท็บ 1 · คิวรับบริการ (รอเรียก + เช็คอิน) --- */
+/* --- แท็บ 1 · คิวรับบริการ --- */
 function renderNow(P){
   var live = st.items.filter(function(r){ return r.status === 'booked' || r.status === 'checkin'; });
   var all  = st.items.filter(function(r){ return r.status !== 'cancelled'; });
+  function n(s){ return all.filter(function(r){ return r.status === s; }).length; }
   P.appendChild(el(
     '<div class="tiles">' +
-      '<div class="tile hi"><b>' + all.filter(function(r){ return r.status === 'booked'; }).length + '</b><small>รอเรียก</small></div>' +
-      '<div class="tile"><b>' + all.filter(function(r){ return r.status === 'checkin'; }).length + '</b><small>เช็คอิน</small></div>' +
-      '<div class="tile"><b>' + all.filter(function(r){ return r.status === 'done'; }).length + '</b><small>เสร็จสิ้น</small></div>' +
-      '<div class="tile"><b>' + all.filter(function(r){ return r.status === 'noshow'; }).length + '</b><small>ไม่มา</small></div>' +
+      '<div class="tile hi"><b>' + n('booked') + '</b><small>รอเรียก</small></div>' +
+      '<div class="tile"><b>' + n('checkin') + '</b><small>เช็คอิน</small></div>' +
+      '<div class="tile"><b>' + n('done') + '</b><small>เสร็จสิ้น</small></div>' +
+      '<div class="tile"><b>' + n('noshow') + '</b><small>ไม่มา</small></div>' +
     '</div>'));
 
   var f = el('<div class="filters"></div>');
@@ -400,7 +453,6 @@ function renderNow(P){
   P.appendChild(f);
 
   var show = live.filter(function(r){ return st.filter === 'all' || r.dept === st.filter; });
-  show.sort(function(a,b){ return a.slot < b.slot ? -1 : a.slot > b.slot ? 1 : (a.queueNo < b.queueNo ? -1 : 1); });
   if (!show.length){
     P.appendChild(el('<div class="empty">ไม่มีคิวที่รอให้บริการ' +
       (st.date === bkkNow().date ? 'ในวันนี้' : 'ในวันที่เลือก') + '</div>'));
@@ -421,20 +473,19 @@ function renderUp(P){
     ' รายการ ใน ' + dates.length + ' วัน</p>'));
   dates.forEach(function(dt){
     var list = byDate[dt];
-    var perDept = Object.keys(D).map(function(k){
-      var n = list.filter(function(r){ return r.dept === k; }).length;
-      return n ? D[k].name + ' ' + n : null;
+    var per = Object.keys(D).map(function(k){
+      var c = list.filter(function(r){ return r.dept === k; }).length;
+      return c ? D[k].name + ' ' + c : null;
     }).filter(Boolean).join(' · ');
     P.appendChild(el('<div class="gh"><b>' + esc(thDate(dt, true)) + ' · ' + esc(thUntil(dt)) +
-      '</b><span class="n">' + esc(perDept) + '</span></div>'));
-    list.sort(function(a,b){ return a.slot < b.slot ? -1 : 1; });
+      '</b><span class="n">' + esc(per) + '</span></div>'));
     list.forEach(function(r){ P.appendChild(qrow(r, { showDate:true, actions:false, isNew: !st.seen[r.id] })); });
   });
 }
 
-/* --- แท็บ 3 · เสร็จสิ้น (แยกตามแผนก) --- */
+/* --- แท็บ 3 · เสร็จสิ้น --- */
 function renderDone(P){
-  var done = st.items.filter(function(r){ return r.status === 'done'; });
+  var done  = st.items.filter(function(r){ return r.status === 'done'; });
   var other = st.items.filter(function(r){ return r.status === 'noshow' || r.status === 'cancelled'; });
   P.appendChild(el('<p class="sechead">' + esc(thDate(st.date, true)) +
     ' · ให้บริการเสร็จสิ้น ' + done.length + ' ราย</p>'));
@@ -444,13 +495,12 @@ function renderDone(P){
   Object.keys(D).forEach(function(k){
     var list = done.filter(function(r){ return r.dept === k; });
     if (!list.length) return;
-    P.appendChild(groupHead({ tag: D[k].tag, dept: k }, D[k].name, list.length));
-    list.sort(function(a,b){ return a.slot < b.slot ? -1 : 1; });
+    P.appendChild(el('<div class="gh" data-dept="' + k + '"><span class="tag">' + esc(D[k].tag) +
+      '</span><b>' + esc(D[k].name) + '</b><span class="n">' + list.length + ' รายการ</span></div>'));
     list.forEach(function(r){ P.appendChild(qrow(r)); });
   });
   if (other.length){
     P.appendChild(el('<p class="sechead">ไม่มาตามนัด / ยกเลิก</p>'));
-    other.sort(function(a,b){ return a.slot < b.slot ? -1 : 1; });
     other.forEach(function(r){ P.appendChild(qrow(r, { actions: r.status === 'noshow' })); });
   }
 }
@@ -477,17 +527,17 @@ function renderSum(P){
           '<div class="kv"><span>ให้บริการเสร็จสิ้น</span><b>' + n('done') + '</b></div>' +
           '<div class="kv"><span>ไม่มาตามนัด</span><b>' + n('noshow') + '</b></div>' +
           '<div class="kv"><span>ยกเลิก</span><b>' + n('cancelled') + '</b></div>' +
-          (rows ? '<div class="kv" style="margin-top:6px;border-top:1px solid var(--line);padding-top:9px"><span>แยกตามบริการ</span><b></b></div>' + rows : '') +
-        '</div>' +
-      '</div>'));
+          (rows ? '<div class="kv" style="margin-top:6px;border-top:1px solid var(--line);padding-top:9px">' +
+                  '<span>แยกตามบริการ</span><b></b></div>' + rows : '') +
+        '</div></div>'));
   });
   if (!any) P.appendChild(el('<div class="empty">ไม่มีข้อมูลในวันที่เลือก</div>'));
 
   P.appendChild(el('<p class="sechead">ย้อนหลังรายวัน</p>'));
-  var f = el('<div class="filters" id="rangef"></div>');
+  var f = el('<div class="filters"></div>');
   [[7,'7 วัน'],[30,'30 วัน']].forEach(function(o){
     var b = document.createElement('button');
-    b.textContent = o[1]; b.setAttribute('aria-pressed', (st.range || 7) === o[0] ? 'true' : 'false');
+    b.textContent = o[1]; b.setAttribute('aria-pressed', st.range === o[0] ? 'true' : 'false');
     b.onclick = function(){ st.range = o[0]; render(); };
     f.appendChild(b);
   });
@@ -495,20 +545,23 @@ function renderSum(P){
   var box = el('<div class="tw"><div class="empty">กำลังโหลด…</div></div>');
   P.appendChild(box);
 
-  var days = st.range || 7;
-  api({ action:'range', from: addDays(st.date, -(days - 1)), to: st.date })
+  api({ action:'range', from: addDays(st.date, -(st.range - 1)), to: st.date })
     .then(function(j){ box.innerHTML = rangeTable(j.days); })
-    .catch(function(e){ box.innerHTML = '<div class="empty">โหลดไม่สำเร็จ · ' + esc(e.message) + '</div>'; });
+    .catch(function(e){
+      box.innerHTML = '<div class="empty"></div>';
+      box.firstChild.textContent = 'โหลดไม่สำเร็จ · ' + e.message;
+      if (e.code === 'STAFF_AUTH') toLogin(e.message);
+    });
 }
 
 function rangeTable(days){
   var keys = Object.keys(days || {}).sort().reverse();
   if (!keys.length) return '<div class="empty">ไม่มีข้อมูลในช่วงที่เลือก</div>';
-  var dk = Object.keys(D);
-  var tot = {}; dk.forEach(function(k){ tot[k] = 0; });
+  var dk = Object.keys(D), tot = {};
+  dk.forEach(function(k){ tot[k] = 0; });
   var tDone = 0, tNo = 0, tAll = 0;
   var body = keys.map(function(d){
-    var row = days[d], done = 0, no = 0, sum = 0;
+    var row = days[d] || {}, done = 0, no = 0, sum = 0;
     var cells = dk.map(function(k){
       var v = (row[k] && row[k].total) || 0;
       tot[k] += v; sum += v;
@@ -517,7 +570,7 @@ function rangeTable(days){
       return '<td' + (v ? '' : ' class="zero"') + '>' + (v || '–') + '</td>';
     }).join('');
     tDone += done; tNo += no; tAll += sum;
-    return '<tr><td>' + esc(thDate(d)) + '<small style="color:var(--ink3)"> ' + DAY_S[dow(d)] + '</small></td>' +
+    return '<tr><td>' + esc(thDate(d)) + ' <small style="color:var(--ink3)">' + DAY_S[dow(d)] + '</small></td>' +
       cells + '<td><b>' + sum + '</b></td><td>' + done + '</td><td' + (no ? '' : ' class="zero"') + '>' + (no || '–') + '</td></tr>';
   }).join('');
   return '<table><thead><tr><th>วันที่</th>' +
@@ -529,9 +582,7 @@ function rangeTable(days){
 }
 
 /* ---------------- เริ่มทำงาน ---------------- */
-if (st.key){
-  api({ action:'queue', date: st.date }).then(enter).catch(function(){ $('login').hidden = false; });
-}
+if (st.key) enter();
 })();
 </script>
 </body>

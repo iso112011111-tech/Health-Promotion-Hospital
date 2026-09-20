@@ -19,18 +19,17 @@
     <div class="ttl" id="topttl">จองคิวรับบริการ<span id="topsub"></span></div>
   </div>
 
-  <!-- กำลังโหลด -->
   <div class="center" id="s0">
     <div><div class="spin"></div><p style="color:var(--ink3);font-size:13px">กำลังเชื่อมต่อ LINE…</p></div>
   </div>
 
-  <!-- ข้อผิดพลาด -->
   <div class="center" id="serr" hidden>
     <div>
       <p style="font-size:34px;margin-bottom:10px">⚠︎</p>
       <h2 style="font-size:17px;margin-bottom:8px" id="errttl">เชื่อมต่อไม่สำเร็จ</h2>
       <p style="color:var(--ink3);font-size:13px;max-width:34ch" id="errmsg"></p>
-      <button class="ghost" style="margin-top:18px;max-width:200px" onclick="location.reload()">ลองใหม่</button>
+      <button class="cta" style="margin-top:18px;max-width:220px" id="errbtn" hidden></button>
+      <button class="ghost" style="max-width:220px;margin-inline:auto" onclick="location.reload()">ลองใหม่</button>
     </div>
   </div>
 
@@ -40,6 +39,7 @@
       <div class="ph" id="ava">?</div>
       <div><b id="hiname">สวัสดี</b><small id="hisub">เข้าสู่ระบบด้วยบัญชี LINE แล้ว</small></div>
     </div>
+    <div class="warnbox" id="offlinewarn" hidden>ต่อเซิร์ฟเวอร์ไม่ได้ กำลังแสดงตารางเวลาสำรอง กรุณาตรวจสอบอีกครั้งก่อนเดินทางมา</div>
     <h2 class="qhead">ต้องการรับบริการแผนกใด</h2>
     <p class="qsub">เลือก 1 แผนก ระบบจะแสดงเฉพาะบริการและเวลาของแผนกนั้น</p>
     <div class="deptgrid" id="deptgrid"></div>
@@ -73,7 +73,7 @@
     <div class="note" id="prefill" hidden><span>✓</span><span>เติมข้อมูลจากการจองครั้งก่อนให้แล้ว ตรวจสอบและแก้ไขได้</span></div>
 
     <div class="field" id="w-name"><label for="f-name">ชื่อ–นามสกุล <i>*</i></label>
-      <input id="f-name" autocomplete="name" placeholder="เช่น สมหญิง ศรีสะอาด"><p class="err" hidden></p></div>
+      <input id="f-name" autocomplete="name" maxlength="100" placeholder="เช่น สมหญิง ศรีสะอาด"><p class="err" hidden></p></div>
 
     <div class="field" id="w-id"><label for="f-id">เลขบัตรประชาชน <i>*</i></label>
       <input id="f-id" inputmode="numeric" maxlength="17" placeholder="เลข 13 หลัก">
@@ -90,6 +90,7 @@
 
     <label class="consent" for="f-pdpa"><input type="checkbox" id="f-pdpa">
       <span>ยินยอมให้ <b id="orgname"></b> เก็บและใช้ข้อมูลส่วนบุคคลข้างต้น เพื่อการนัดหมายและการให้บริการทางการแพทย์ ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</span></label>
+    <p class="err" id="formerr" hidden style="margin-top:12px"></p>
   </div>
   <div class="foot" id="f4" hidden><button class="cta" id="btn4">ยืนยันการจองคิว</button></div>
 
@@ -98,8 +99,9 @@
     <div style="text-align:center;margin:10px 0 22px">
       <div class="tick">✓</div>
       <h2 style="font-size:19px">จองคิวสำเร็จ</h2>
-      <p style="color:var(--ink3);font-size:13px;margin-top:4px">ส่งบัตรคิวเข้าแชท LINE ของคุณแล้ว</p>
+      <p style="color:var(--ink3);font-size:13px;margin-top:4px" id="donesub"></p>
     </div>
+    <div class="warnbox" id="pushwarn" hidden>ส่งบัตรคิวเข้าแชทไม่สำเร็จ กรุณาบันทึกภาพหน้าจอนี้ไว้แสดงต่อเจ้าหน้าที่</div>
     <div class="ticket" id="ticket"></div>
   </div>
   <div class="foot" id="f5" hidden>
@@ -110,7 +112,7 @@
   <!-- 6 · คิวของฉัน -->
   <div class="body" id="s6" hidden>
     <h2 class="qhead">คิวที่จองไว้</h2>
-    <p class="qsub">กดที่รายการเพื่อยกเลิกคิว</p>
+    <p class="qsub">กดปุ่มในรายการเพื่อยกเลิกคิว</p>
     <div id="minelist"></div>
   </div>
 </div>
@@ -121,45 +123,84 @@
 <script>
 (function () {
 'use strict';
-var C = window.APP_CONFIG, D = C.DEPTS;
+var C = window.APP_CONFIG;
+var D = C.DEPTS;                    /* เซิร์ฟเวอร์เขียนทับตอน boot */
 var ICON = {
   tm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c0-8.5 6.2-14.5 16.5-15.5C21 15 14.5 20.5 4 20z"/><path d="M4.5 19.5c4-4.5 8-7.5 12.5-10"/></svg>',
   dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.2C5 3.2 3.6 5 3.6 7.6c0 3.4 1 4.6 1.7 8 .5 2.6 1 5.2 2.3 5.2 1.2 0 1.5-2.2 1.9-4.4.3-1.6.6-2.4 1.5-2.4s1.2.8 1.5 2.4c.4 2.2.7 4.4 1.9 4.4 1.3 0 1.8-2.6 2.3-5.2.7-3.4 1.7-4.6 1.7-8 0-2.6-1.4-4.4-3.9-4.4-1.6 0-2.4.8-3.5.8s-1.9-.8-3.5-.8z"/></svg>'
 };
 var $ = function (id) { return document.getElementById(id); };
 var app = $('app');
-var st = { step: 0, dept: null, svc: null, date: null, slot: null,
-           profile: null, patient: null, counts: {}, countsLoaded: false, idToken: null, last: null };
+var st = { step:0, dept:null, svc:null, date:null, slot:null,
+           profile:null, patient:null, counts:{}, countsLoaded:false, idToken:null, last:null };
 
-/* ---------- ยูทิลิตี้ ---------- */
+/* ---------- ร่างที่กรอกค้างไว้ กันข้อมูลหายเมื่อต้องเข้าสู่ระบบใหม่ ---------- */
+var DRAFT = 'nkt_draft';
+var FIELDS = ['f-name','f-id','f-tel','f-right','f-note'];
+function saveDraft(){
+  try {
+    var o = {}; FIELDS.forEach(function(k){ var e = $(k); if (e) o[k] = e.value; });
+    o.pdpa = $('f-pdpa').checked;
+    sessionStorage.setItem(DRAFT, JSON.stringify(o));
+  } catch (e) {}
+}
+function restoreDraft(){
+  try {
+    var o = JSON.parse(sessionStorage.getItem(DRAFT) || 'null');
+    if (!o) return;
+    FIELDS.forEach(function(k){ if (o[k]) { var e = $(k); if (e) e.value = o[k]; } });
+    if (o.pdpa) $('f-pdpa').checked = true;
+  } catch (e) {}
+}
+function clearDraft(){ try { sessionStorage.removeItem(DRAFT); } catch (e) {} }
+FIELDS.concat(['f-pdpa']).forEach(function(k){
+  var e = $(k); if (e) e.addEventListener('input', saveDraft);
+});
+$('f-pdpa').addEventListener('change', function(){ saveDraft(); syncBtn4(); });
+
+/* ---------- ตัวช่วย ---------- */
 function digits(s){ return (s||'').replace(/\D/g,''); }
 function validThaiId(s){
   var n = digits(s); if (n.length !== 13) return false;
   var sum = 0; for (var i=0;i<12;i++) sum += +n[i] * (13-i);
   return ((11 - sum % 11) % 10) === +n[12];
 }
-function fmtId(s){ var n = digits(s).slice(0,13), o = '';
-  var cut = [1,5,10,12,13], k = 0;
+function fmtId(s){
+  var n = digits(s).slice(0,13), o = '', cut = [1,5,10,12];
   for (var i=0;i<n.length;i++){ o += n[i]; if (cut.indexOf(i+1) > -1 && i+1 < n.length) o += ' '; }
-  return o; }
-function fmtTel(s){ var n = digits(s).slice(0,10);
+  return o;
+}
+function fmtTel(s){
+  var n = digits(s).slice(0,10);
   return n.length > 6 ? n.slice(0,3)+'-'+n.slice(3,6)+'-'+n.slice(6)
-       : n.length > 3 ? n.slice(0,3)+'-'+n.slice(3) : n; }
+       : n.length > 3 ? n.slice(0,3)+'-'+n.slice(3) : n;
+}
 function fieldErr(wrapId, msg){
   var w = $(wrapId), p = w.querySelector('.err');
   if (msg){ w.classList.add('bad'); p.textContent = msg; p.hidden = false; }
   else { w.classList.remove('bad'); p.hidden = true; }
   return !msg;
 }
-function fail(title, msg){ hideAll(); $('errttl').textContent = title; $('errmsg').textContent = msg; $('serr').hidden = false; }
+function fail(title, msg, btnTxt, btnFn){
+  hideAll();
+  $('errttl').textContent = title; $('errmsg').textContent = msg;
+  var b = $('errbtn');
+  if (btnTxt){ b.hidden = false; b.textContent = btnTxt; b.onclick = btnFn; } else b.hidden = true;
+  $('serr').hidden = false;
+}
 
 /* ---------- เรียก API ---------- */
 function api(payload){
   if (C.DEMO) return demo(payload);
-  payload.idToken = st.idToken;
+  if (payload.action !== 'config') payload.idToken = st.idToken;
   return fetch(C.API_URL, { method:'POST', body: JSON.stringify(payload) })
     .then(function(r){ return r.json(); })
-    .then(function(j){ if (!j.ok) throw new Error(j.error || 'ระบบขัดข้อง'); return j; });
+    .catch(function(){ var e = new Error('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบสัญญาณอินเทอร์เน็ต');
+                       e.code = 'NETWORK'; throw e; })
+    .then(function(j){
+      if (!j.ok){ var e = new Error(j.error || 'ระบบขัดข้อง'); e.code = j.code || 'ERROR'; throw e; }
+      return j;
+    });
 }
 function hash(s){ var h = 7; for (var i=0;i<s.length;i++) h = (h*31 + s.charCodeAt(i)) >>> 0; return h; }
 function demo(p){
@@ -172,30 +213,27 @@ function demo(p){
       }
       res({ ok:true, counts:c });
     } else if (p.action === 'book'){
-      res({ ok:true, id:'demo', queueNo: D[p.dept].tag+'-'+String(hash(p.date+p.slot)%40+7).padStart(3,'0') });
-    } else if (p.action === 'mine'){
-      res({ ok:true, items:[] });
-    } else res({ ok:true });
-  }, 260); });
+      res({ ok:true, id:'demo', pushed:true,
+            queueNo: D[p.dept].tag+'-'+String(hash(p.date+p.slot)%40+7).padStart(3,'0') });
+    } else if (p.action === 'mine'){ res({ ok:true, items:[] }); }
+    else res({ ok:true });
+  }, 240); });
 }
 
 /* ---------- นำทาง ---------- */
-var BODIES = ['s0','serr','s1','s2','s3','s4','s5','s6'];
-var FOOTS  = ['f2','f3','f4','f5'];
+var BODIES = ['s0','serr','s1','s2','s3','s4','s5','s6'], FOOTS = ['f2','f3','f4','f5'];
 function hideAll(){ BODIES.concat(FOOTS).forEach(function(id){ $(id).hidden = true; }); $('topbar').hidden = true; }
-var TITLES = { 1:['จองคิวรับบริการ', C.ORG], 2:['เลือกบริการ',''], 3:['เลือกวันและเวลา',''],
-               4:['ข้อมูลผู้รับบริการ',''], 5:['จองคิวสำเร็จ',''], 6:['คิวของฉัน', C.ORG] };
+var TITLES = { 1:['จองคิวรับบริการ', ''], 2:['เลือกบริการ',''], 3:['เลือกวันและเวลา',''],
+               4:['ข้อมูลผู้รับบริการ',''], 5:['จองคิวสำเร็จ',''], 6:['คิวของฉัน',''] };
 function go(n){
   st.step = n; hideAll();
   $('s'+n).hidden = false;
   if ($('f'+n)) $('f'+n).hidden = false;
-  if (n >= 1){
-    $('topbar').hidden = false;
-    $('topttl').firstChild.nodeValue = TITLES[n][0];
-    $('topsub').textContent = TITLES[n][1] || (st.dept ? D[st.dept].name : '');
-    $('back').hidden = (n === 1 || n === 5);
-  }
-  $('app').scrollTop = 0; $('s'+n).scrollTop = 0;
+  $('topbar').hidden = false;
+  $('topttl').firstChild.nodeValue = TITLES[n][0];
+  $('topsub').textContent = (n === 1 || n === 6) ? C.ORG : (st.dept ? D[st.dept].name : C.ORG);
+  $('back').hidden = (n === 1 || n === 5);
+  $('s'+n).scrollTop = 0;
   if (n === 3) loadCounts();
   if (n === 6) loadMine();
 }
@@ -210,10 +248,14 @@ function renderDepts(){
   Object.keys(D).forEach(function(k){
     var d = D[k], b = document.createElement('button');
     b.className = 'deptcard'; b.setAttribute('data-dept', k);
-    b.innerHTML = '<span class="ic">' + (ICON[k]||'') + '</span><span><b>' + d.name + '</b><small>' + d.blurb +
-      '</small><span class="opendays">เปิด ' + d.dayTxt + '</span></span><span class="go">›</span>';
+    b.innerHTML = '<span class="ic">' + (ICON[k]||'') + '</span><span><b></b><small></small>' +
+                  '<span class="opendays"></span></span><span class="go">›</span>';
+    b.querySelector('b').textContent = d.name;
+    b.querySelector('small').textContent = d.blurb || '';
+    b.querySelector('.opendays').textContent = 'เปิด ' + d.dayTxt;
     b.onclick = function(){
-      st.dept = k; st.svc = null; st.date = null; st.slot = null; st.counts = {}; st.countsLoaded = false;
+      st.dept = k; st.svc = null; st.date = null; st.slot = null;
+      st.counts = {}; st.countsLoaded = false;
       app.setAttribute('data-dept', k); renderSvc(); go(2);
     };
     g.appendChild(b);
@@ -229,7 +271,8 @@ function renderSvc(){
   d.services.forEach(function(s){
     var b = document.createElement('button');
     b.className = 'opt'; b.setAttribute('aria-pressed', st.svc === s ? 'true' : 'false');
-    b.innerHTML = '<span class="dot"></span><span>' + s + '</span>';
+    b.innerHTML = '<span class="dot"></span><span></span>';
+    b.querySelectorAll('span')[1].textContent = s;
     b.onclick = function(){ st.svc = s; renderSvc(); };
     L.appendChild(b);
   });
@@ -240,15 +283,16 @@ $('btn2').onclick = function(){ go(3); };
 /* ---------- 3 · วัน–เวลา ---------- */
 function loadCounts(){
   renderDays(); renderSlots();
-  api({ action:'counts', dept: st.dept }).then(function(j){
-    st.counts = j.counts || {}; st.countsLoaded = true; renderSlots();
-  }).catch(function(){ st.counts = {}; st.countsLoaded = true; renderSlots(); });
+  api({ action:'counts', dept: st.dept })
+    .then(function(j){ st.counts = j.counts || {}; })
+    .catch(function(){ st.counts = {}; })
+    .then(function(){ st.countsLoaded = true; renderSlots(); });
 }
 function dayOpen(key, now){
   var d = D[st.dept];
   if (d.days.indexOf(dow(key)) < 0) return false;
-  if (C.HOLIDAYS.indexOf(key) > -1) return false;
-  if (key === now.date){                       /* วันนี้เปิดต่อเมื่อยังมีช่วงเวลาเหลือ */
+  if ((C.HOLIDAYS || []).indexOf(key) > -1) return false;
+  if (key === now.date){
     if (!C.ALLOW_SAME_DAY) return false;
     return d.slots.some(function(sl){ return slotStart(sl) > now.min; });
   }
@@ -304,19 +348,30 @@ function renderSlots(){
 $('btn3').onclick = function(){ renderForm(); go(4); };
 
 /* ---------- 4 · ฟอร์ม ---------- */
+function rightOptions(selected){
+  var sel = $('f-right'), list = (C.RIGHTS || []).slice();
+  /* ถ้าค่าที่บันทึกไว้ไม่อยู่ในรายการ ให้เพิ่มเข้าไป จะได้ไม่ถูกเปลี่ยนเงียบ ๆ */
+  if (selected && list.indexOf(selected) < 0) list.push(selected);
+  sel.innerHTML = '';
+  list.forEach(function(r){ sel.add(new Option(r, r)); });
+  if (selected) sel.value = selected;
+}
 function renderForm(){
   var d = D[st.dept];
   $('sum').innerHTML =
-    '<div class="row"><span>แผนก</span><b>' + d.name + '</b></div>' +
-    '<div class="row"><span>บริการ</span><b>' + st.svc + '</b></div>' +
-    '<div class="row"><span>วันที่</span><b>' + thDate(st.date, true) + '</b></div>' +
-    '<div class="row"><span>เวลา</span><b>' + st.slot + ' น.</b></div>';
-  var sel = $('f-right');
-  if (!sel.options.length) C.RIGHTS.forEach(function(r){ sel.add(new Option(r, r)); });
+    '<div class="row"><span>แผนก</span><b class="v1"></b></div>' +
+    '<div class="row"><span>บริการ</span><b class="v2"></b></div>' +
+    '<div class="row"><span>วันที่</span><b class="v3"></b></div>' +
+    '<div class="row"><span>เวลา</span><b class="v4"></b></div>';
+  $('sum').querySelector('.v1').textContent = d.name;
+  $('sum').querySelector('.v2').textContent = st.svc;
+  $('sum').querySelector('.v3').textContent = thDate(st.date, true);
+  $('sum').querySelector('.v4').textContent = st.slot + ' น.';
   $('orgname').textContent = C.ORG;
 }
 $('f-id').addEventListener('input', function(){ this.value = fmtId(this.value); });
 $('f-tel').addEventListener('input', function(){ this.value = fmtTel(this.value); });
+function syncBtn4(){ $('formerr').hidden = true; }
 
 $('btn4').onclick = function(){
   var name = $('f-name').value.trim(), id = $('f-id').value, tel = $('f-tel').value;
@@ -325,41 +380,73 @@ $('btn4').onclick = function(){
   ok = fieldErr('w-name', name.length >= 3 ? '' : 'กรุณากรอกชื่อ–นามสกุล') && ok;
   if (digits(id).length === 0 && hasSaved) fieldErr('w-id', '');
   else ok = fieldErr('w-id', validThaiId(id) ? '' : 'เลขบัตรประชาชนไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง') && ok;
-  ok = fieldErr('w-tel', digits(tel).length >= 9 ? '' : 'กรุณากรอกเบอร์โทรศัพท์') && ok;
-  if (!$('f-pdpa').checked){ ok = false; alert('กรุณายินยอมให้เก็บข้อมูลส่วนบุคคลก่อนยืนยันการจอง'); }
-  if (!ok){ var bad = document.querySelector('.field.bad'); if (bad) bad.scrollIntoView({ block:'center' }); return; }
+  ok = fieldErr('w-tel', digits(tel).length >= 9 ? '' : 'กรุณากรอกเบอร์โทรศัพท์ 9–10 หลัก') && ok;
+  if (!$('f-pdpa').checked){
+    ok = false;
+    $('formerr').textContent = 'กรุณาติดยินยอมให้เก็บข้อมูลส่วนบุคคลก่อนยืนยันการจอง';
+    $('formerr').hidden = false;
+  }
+  if (!ok){
+    var bad = document.querySelector('.field.bad') || $('formerr');
+    if (bad) bad.scrollIntoView({ block:'center' });
+    return;
+  }
+  saveDraft();
+
+  /* ดึง token ใหม่ก่อนส่ง เผื่อ LIFF ต่ออายุให้ระหว่างที่กรอกฟอร์ม */
+  if (!C.DEMO){ try { st.idToken = liff.getIDToken() || st.idToken; } catch (e) {} }
 
   var btn = this; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   api({ action:'book', dept: st.dept, service: st.svc, date: st.date, slot: st.slot,
         name: name, idCard: digits(id), tel: digits(tel), right: $('f-right').value,
         note: $('f-note').value.trim(), consent: true })
   .then(function(j){
-    st.last = { queueNo: j.queueNo, name: name, right: $('f-right').value };
+    clearDraft();
+    st.last = { queueNo: j.queueNo, name: name, right: $('f-right').value, pushed: j.pushed !== false };
     renderTicket(); go(5);
   })
-  .catch(function(e){ alert('จองไม่สำเร็จ: ' + e.message + '\nกรุณาลองใหม่อีกครั้ง'); })
+  .catch(function(e){
+    if (e.code === 'AUTH_EXPIRED' && !C.DEMO){
+      fail('การเข้าสู่ระบบหมดอายุ',
+           'ข้อมูลที่กรอกไว้ถูกเก็บให้แล้ว กดปุ่มด้านล่างเพื่อเข้าสู่ระบบใหม่ แล้วเลือกวันเวลาอีกครั้ง',
+           'เข้าสู่ระบบใหม่', function(){ liff.login({ redirectUri: location.href }); });
+      return;
+    }
+    $('formerr').textContent = 'จองไม่สำเร็จ · ' + e.message;
+    $('formerr').hidden = false;
+    $('formerr').scrollIntoView({ block:'center' });
+  })
   .then(function(){ btn.disabled = false; btn.textContent = 'ยืนยันการจองคิว'; });
 };
 
 /* ---------- 5 · บัตรคิว ---------- */
 function renderTicket(){
   var d = D[st.dept], L = st.last;
+  $('donesub').textContent = L.pushed ? 'ส่งบัตรคิวเข้าแชท LINE ของคุณแล้ว'
+                                      : 'บันทึกคิวเรียบร้อยแล้ว';
+  $('pushwarn').hidden = L.pushed;
   $('ticket').innerHTML =
-    '<div class="head"><small>บัตรคิวออนไลน์</small><b>' + d.name + '</b></div>' +
-    '<div class="q"><div class="no"><small>หมายเลขคิว</small>' + L.queueNo + '</div></div>' +
+    '<div class="head"><small>บัตรคิวออนไลน์</small><b class="t1"></b></div>' +
+    '<div class="q"><div class="no"><small>หมายเลขคิว</small><span class="t2"></span></div></div>' +
     '<div class="rows">' +
-      '<div class="r"><span>บริการ</span><b>' + st.svc + '</b></div>' +
-      '<div class="r"><span>วันที่</span><b>' + thDate(st.date, true) + '</b></div>' +
-      '<div class="r"><span>เวลา</span><b>' + st.slot + ' น.</b></div>' +
-      '<div class="r"><span>ผู้รับบริการ</span><b>' + L.name + '</b></div>' +
-      '<div class="r"><span>สิทธิ</span><b>' + L.right + '</b></div>' +
-      '<div class="r"><span>สถานที่</span><b>' + C.ORG_SHORT + '</b></div>' +
-    '</div>' +
-    '<p style="padding:0 16px 14px;font-size:11.5px;color:var(--ink3)">กรุณามาถึงก่อนเวลานัด ' +
-      C.ARRIVE_BEFORE + ' นาที และแสดงบัตรคิวนี้ต่อเจ้าหน้าที่</p>';
+      '<div class="r"><span>บริการ</span><b class="t3"></b></div>' +
+      '<div class="r"><span>วันที่</span><b class="t4"></b></div>' +
+      '<div class="r"><span>เวลา</span><b class="t5"></b></div>' +
+      '<div class="r"><span>ผู้รับบริการ</span><b class="t6"></b></div>' +
+      '<div class="r"><span>สิทธิ</span><b class="t7"></b></div>' +
+      '<div class="r"><span>สถานที่</span><b class="t8"></b></div>' +
+    '</div><p class="tnote" style="padding:0 16px 14px;font-size:11.5px;color:var(--ink3)"></p>';
+  var q = function(c){ return $('ticket').querySelector(c); };
+  q('.t1').textContent = d.name;      q('.t2').textContent = L.queueNo;
+  q('.t3').textContent = st.svc;      q('.t4').textContent = thDate(st.date, true);
+  q('.t5').textContent = st.slot + ' น.'; q('.t6').textContent = L.name;
+  q('.t7').textContent = L.right;     q('.t8').textContent = C.ORG_SHORT;
+  q('.tnote').textContent = 'กรุณามาถึงก่อนเวลานัด ' + C.ARRIVE_BEFORE + ' นาที และแสดงบัตรคิวนี้ต่อเจ้าหน้าที่';
 }
-$('btnclose').onclick = function(){ if (!C.DEMO && liff.isInClient()) liff.closeWindow(); else go(1); };
-$('btnmore').onclick  = function(){ st.svc = null; st.date = null; st.slot = null; go(1); };
+$('btnclose').onclick = function(){
+  if (!C.DEMO && typeof liff !== 'undefined' && liff.isInClient()) liff.closeWindow(); else go(1);
+};
+$('btnmore').onclick = function(){ st.svc = null; st.date = null; st.slot = null; go(1); };
 
 /* ---------- 6 · คิวของฉัน ---------- */
 $('gomine').onclick = function(){ go(6); };
@@ -370,26 +457,45 @@ function loadMine(){
     if (!items.length){ L.innerHTML = '<div class="empty">ยังไม่มีคิวที่จองไว้</div>'; return; }
     L.innerHTML = '';
     items.forEach(function(it){
-      var d = D[it.dept] || { name: it.dept, tag: '?' };
-      var el = document.createElement('div');
-      el.className = 'sum'; el.setAttribute('data-dept', it.dept);
-      el.innerHTML =
-        '<div class="row"><span>' + d.name + '</span><b style="color:var(--acc)">' + it.queueNo + '</b></div>' +
-        '<div class="row"><span>บริการ</span><b>' + it.service + '</b></div>' +
-        '<div class="row"><span>วันเวลา</span><b>' + thDate(it.date) + ' · ' + it.slot + '</b></div>' +
+      var d = D[it.dept] || { name: it.dept };
+      var e = document.createElement('div');
+      e.className = 'sum'; e.setAttribute('data-dept', it.dept);
+      e.innerHTML =
+        '<div class="row"><span class="m1"></span><b style="color:var(--acc)" class="m2"></b></div>' +
+        '<div class="row"><span>บริการ</span><b class="m3"></b></div>' +
+        '<div class="row"><span>วันเวลา</span><b class="m4"></b></div>' +
         '<button class="ghost" style="margin-top:10px;color:var(--crit)">ยกเลิกคิวนี้</button>';
-      el.querySelector('button').onclick = function(){
+      e.querySelector('.m1').textContent = d.name;
+      e.querySelector('.m2').textContent = it.queueNo;
+      e.querySelector('.m3').textContent = it.service;
+      e.querySelector('.m4').textContent = thDate(it.date) + ' · ' + it.slot;
+      e.querySelector('button').onclick = function(){
         if (!confirm('ยืนยันยกเลิกคิว ' + it.queueNo + ' ?')) return;
+        this.disabled = true;
         api({ action:'cancel', id: it.id })
           .then(loadMine)
-          .catch(function(e){ alert('ยกเลิกไม่สำเร็จ: ' + e.message); });
+          .catch(function(err){ alert('ยกเลิกไม่สำเร็จ · ' + err.message); loadMine(); });
       };
-      L.appendChild(el);
+      L.appendChild(e);
     });
-  }).catch(function(e){ L.innerHTML = '<div class="empty">โหลดไม่สำเร็จ · ' + e.message + '</div>'; });
+  }).catch(function(e){
+    L.innerHTML = '<div class="empty"></div>';
+    L.firstChild.textContent = 'โหลดไม่สำเร็จ · ' + e.message;
+  });
 }
 
 /* ---------- เริ่มทำงาน ---------- */
+function applyConfig(j){
+  if (!j) return;
+  if (j.depts && Object.keys(j.depts).length) { C.DEPTS = j.depts; D = j.depts; }
+  if (j.rights) C.RIGHTS = j.rights;
+  if (j.holidays) C.HOLIDAYS = j.holidays;
+  if (j.org) C.ORG = j.org;
+  if (j.orgShort) C.ORG_SHORT = j.orgShort;
+  if (typeof j.allowSameDay === 'boolean') C.ALLOW_SAME_DAY = j.allowSameDay;
+  if (j.bookAheadDays) C.BOOK_AHEAD_DAYS = j.bookAheadDays;
+  if (j.arriveBefore) C.ARRIVE_BEFORE = j.arriveBefore;
+}
 function applyProfile(p, patient){
   st.profile = p; st.patient = patient || null;
   $('hiname').textContent = 'สวัสดี คุณ' + (p.displayName || '');
@@ -397,41 +503,50 @@ function applyProfile(p, patient){
     var img = document.createElement('img'); img.src = p.pictureUrl; img.alt = '';
     $('ava').replaceWith(img); img.id = 'ava';
   } else $('ava').textContent = (p.displayName || '?').slice(0,2);
+
+  rightOptions(patient && patient.right);
   if (patient){
     $('prefill').hidden = false;
     $('f-name').value = patient.name || '';
     $('f-tel').value  = fmtTel(patient.tel || '');
-    if (patient.right) { $('f-right').value = patient.right; }
     if (patient.hasIdCard){
       $('f-id').placeholder = patient.idCardMask || 'บันทึกไว้แล้ว';
       $('idhelp').textContent = 'บันทึกไว้แล้ว เว้นว่างไว้ได้ · กรอกใหม่เฉพาะเมื่อต้องการแก้ไข';
     }
     if (patient.consent) $('f-pdpa').checked = true;
   }
-  renderDepts(); go(1);
+  restoreDraft();
+  renderDepts();
+  go(1);
 }
 
 function start(){
-  renderDepts();
   if (C.DEMO){
     $('demobar').hidden = false;
     applyProfile({ displayName: 'ผู้ใช้ตัวอย่าง' }, null);
     return;
   }
   if (!C.LIFF_ID || !C.API_URL)
-    return fail('ยังตั้งค่าไม่ครบ', 'กรุณาใส่ LIFF_ID และ API_URL ในไฟล์ config.js หรือเปิด DEMO เป็น true');
+    return fail('ยังตั้งค่าไม่ครบ', 'กรุณาใส่ LIFF_ID และ API_URL ในไฟล์ config.js หรือตั้ง DEMO เป็น true');
 
   liff.init({ liffId: C.LIFF_ID })
     .then(function(){
-      if (!liff.isLoggedIn()){ liff.login(); return new Promise(function(){}); }
+      if (!liff.isLoggedIn()){ liff.login({ redirectUri: location.href }); return new Promise(function(){}); }
       st.idToken = liff.getIDToken();
       return liff.getProfile().then(function(p){
-        return api({ action:'init' })
-          .then(function(j){ applyProfile(p, j.patient); })
-          .catch(function(){ applyProfile(p, null); });
+        return Promise.all([
+          api({ action:'config' }).catch(function(){ $('offlinewarn').hidden = false; return null; }),
+          api({ action:'init' }).catch(function(e){
+            if (e.code === 'AUTH_EXPIRED'){ liff.login({ redirectUri: location.href }); throw e; }
+            return { patient: null };
+          })
+        ]).then(function(r){ applyConfig(r[0]); applyProfile(p, r[1] && r[1].patient); });
       });
     })
-    .catch(function(e){ fail('เชื่อมต่อ LINE ไม่สำเร็จ', e.message || 'กรุณาเปิดหน้านี้จากเมนูในแอป LINE'); });
+    .catch(function(e){
+      if (e && e.code === 'AUTH_EXPIRED') return;
+      fail('เชื่อมต่อ LINE ไม่สำเร็จ', (e && e.message) || 'กรุณาเปิดหน้านี้จากเมนูในแอป LINE');
+    });
 }
 start();
 })();

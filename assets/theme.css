@@ -194,3 +194,13 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
   text-align:center;padding:5px 12px}
 .empty{text-align:center;color:var(--ink3);font-size:13.5px;padding:40px 20px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* แถบแจ้งข้อผิดพลาด — ต้องไม่เงียบเวลาระบบมีปัญหา */
+.errbar{display:flex;align-items:flex-start;gap:9px;padding:11px 16px;background:var(--critsoft);
+  border-bottom:1px solid var(--line);font-size:12.5px;color:var(--crit)}
+.errbar b{font-weight:600;display:block}
+.errbar small{display:block;color:var(--ink2);font-size:11.5px}
+.errbar button{margin-left:auto;flex:0 0 auto;font-size:12px;font-weight:600;
+  padding:5px 12px;border-radius:8px;background:var(--crit);color:#fff}
+.warnbox{margin:0 0 14px;padding:10px 12px;border-radius:10px;background:var(--warnsoft);
+  color:var(--warn);font-size:12px;font-weight:600}
