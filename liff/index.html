@@ -367,8 +367,9 @@ function renderDays(){
   $('c3name').textContent = d.name + ' · ' + st.svc;
   $('dayhint').textContent = 'แผนก' + d.name + 'เปิดให้บริการ ' + d.dayTxt +
     (C.ALLOW_SAME_DAY ? ' · จองวันนี้ได้ถ้ายังไม่เลยเวลา' : '');
-  $('slotnote').textContent = '1 ช่วงเวลารับได้ ' + cap() + ' คิวเท่านั้น · ' +
-    'ช่วงที่เต็มแล้วจะกดไม่ได้ เลือกช่วงถัดไปได้เลย';
+  $('slotnote').textContent = cap() >= 99
+    ? 'เปิดรับคิวแบบไม่จำกัดจำนวนต่อช่วงเวลา'
+    : ('1 ช่วงเวลารับได้ ' + cap() + ' คิวเท่านั้น · ช่วงที่เต็มแล้วจะกดไม่ได้ เลือกช่วงถัดไปได้เลย');
 
   var row = $('dayrow'); row.innerHTML = '';
   var first = null, valid = false;
