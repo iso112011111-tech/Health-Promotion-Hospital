@@ -115,7 +115,10 @@ t('ทุกแผนกมีรายการบริการ', Object.keys
 const cfg = ctx.a_config();
 t('a_config ไม่มี token หรือรหัสผ่านหลุด', /token|secret|STAFF_KEY/i.test(JSON.stringify(cfg)), false);
 t('a_config ไม่มีข้อมูลคนไข้', /idCard|userId|tel/.test(JSON.stringify(cfg)), false);
-t('a_config มีครบ 4 แผนก', Object.keys(cfg.depts).sort(), ['dn', 'gp', 'mc', 'tm']);
+t('a_config มีครบ 3 แผนก (พบแพทย์, ทันตกรรม, แพทย์แผนไทย)', Object.keys(cfg.depts).sort(), ['dn', 'md', 'tm']);
+t('แผนก md มีบริการ ตรวจโรคทั่วไป และ ขอใบรับรองแพทย์', cfg.depts.md.services, ['ตรวจโรคทั่วไป', 'ขอใบรับรองแพทย์']);
+t('บริการ ขอใบรับรองแพทย์ เปิดเฉพาะ อังคาร, พฤหัส', cfg.depts.md.serviceSchedules['ขอใบรับรองแพทย์'].days, [2, 4]);
+t('บริการ ตรวจโรคทั่วไป เปิด จันทร์-เสาร์', cfg.depts.md.serviceSchedules['ตรวจโรคทั่วไป'].days, [1, 2, 3, 4, 5, 6]);
 
 grp('[10] เพดานคิวต่อช่วงเวลา');
 t('ค่าเริ่มต้นของระบบ = 1 คิวต่อช่วง', ctx.CAP_PER_SLOT, 1);

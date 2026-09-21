@@ -20,17 +20,15 @@ var VERSION = '2026-09-20.12';
 
 /* ============ ตารางบริการ — แก้ที่นี่ที่เดียว ============ */
 var DEPTS = {
-  gp: {
-    name: 'ตรวจโรคทั่วไป', tag: 'พ', blurb: 'พบแพทย์ตรวจโรคทั่วไป', cap: 1,
-    days: [1, 2, 3, 4, 5, 6], dayTxt: 'จันทร์–เสาร์', breakAfter: 2,
+  md: {
+    name: 'พบแพทย์', tag: 'พ', blurb: 'ตรวจโรคทั่วไป ขอใบรับรองแพทย์', cap: 1,
+    days: [1, 2, 3, 4, 5, 6], dayTxt: 'จันทร์–เสาร์ (ตรวจโรค) · อังคาร, พฤหัส (ใบรับรอง)', breakAfter: 2,
     slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '13:30–14:30', '14:30–15:30'],
-    services: ['ตรวจโรคทั่วไป']
-  },
-  mc: {
-    name: 'ขอใบรับรองแพทย์', tag: 'ร', blurb: 'ขอใบรับรองแพทย์', cap: 1,
-    days: [2, 4], dayTxt: 'อังคาร · พฤหัสบดี', breakAfter: 2,
-    slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '13:30–14:30', '14:30–15:30'],
-    services: ['ขอใบรับรองแพทย์']
+    services: ['ตรวจโรคทั่วไป', 'ขอใบรับรองแพทย์'],
+    serviceSchedules: {
+      'ตรวจโรคทั่วไป': { days: [1, 2, 3, 4, 5, 6], dayTxt: 'จันทร์–เสาร์' },
+      'ขอใบรับรองแพทย์': { days: [2, 4], dayTxt: 'อังคาร · พฤหัสบดี' }
+    }
   },
   tm: {
     name: 'แพทย์แผนไทย', tag: 'ท', blurb: 'นวด ประคบ พอก อบสมุนไพร', cap: 1,
@@ -400,8 +398,9 @@ function a_book(q) {
     throw new Error('ไม่พบบริการที่เลือกในแผนก' + dep.name);
 
   if (!isYmd_(q.date)) throw new Error('วันที่ไม่ถูกต้อง');
-  if (dep.days.indexOf(dow_(q.date)) < 0)
-    throw new Error('แผนก' + dep.name + 'ไม่เปิดให้บริการในวันที่เลือก');
+  var svcDays = (dep.serviceSchedules && dep.serviceSchedules[q.service] && dep.serviceSchedules[q.service].days) || dep.days;
+  if (svcDays.indexOf(dow_(q.date)) < 0)
+    throw new Error('บริการ' + q.service + ' ไม่เปิดให้บริการในวันที่เลือก');
   if (HOLIDAYS.indexOf(q.date) > -1) throw new Error('วันที่เลือกเป็นวันหยุดให้บริการ');
 
   var cmap = closedMap_(q.dept, today_());
@@ -790,7 +789,7 @@ function thDate_(s, full) {
 
 function pushTicket_(userId, b) {
   var dep = dept_(b.dept) || { name: b.dept },
-      acc = b.dept === 'dn' ? '#0B8B96' : (b.dept === 'mc' ? '#0D9488' : '#10B981');
+      acc = b.dept === 'dn' ? '#0B8B96' : (b.dept === 'md' ? '#10B981' : '#12A37A');
   function row(k, v) {
     return { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
       { type: 'text', text: k, color: '#87A49A', size: 'sm', flex: 2 },
