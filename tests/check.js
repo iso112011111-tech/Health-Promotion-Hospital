@@ -111,7 +111,7 @@ t('อาการยาว 500 → 300', ctx.clip_('ก'.repeat(500), ctx.MAX_N
 
 grp('[9] โครงสร้างข้อมูลและการเปิดเผยข้อมูล');
 t('มีคอลัมน์ remindedAt และอยู่ท้ายสุด', ctx.BOOK_COLS[ctx.BOOK_COLS.length - 1], 'remindedAt');
-t('ทุกแผนกมีรายการบริการ (ยกเว้น md ที่ยังว่าง)', Object.keys(ctx.DEPTS).filter(k => k !== 'md').every(k => ctx.DEPTS[k].services.length > 0), true);
+t('ทุกแผนกมีรายการบริการ', Object.keys(ctx.DEPTS).every(k => ctx.DEPTS[k].services.length > 0), true);
 const cfg = ctx.a_config();
 t('a_config ไม่มี token หรือรหัสผ่านหลุด', /token|secret|STAFF_KEY/i.test(JSON.stringify(cfg)), false);
 t('a_config ไม่มีข้อมูลคนไข้', /idCard|userId|tel/.test(JSON.stringify(cfg)), false);
