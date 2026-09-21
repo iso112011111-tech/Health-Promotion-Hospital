@@ -24,8 +24,12 @@
           "value": "geolocation=(), microphone=(), camera=(), payment=()"
         },
         {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
           "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://*.line.me https://*.line-apps.com https://line.me; base-uri 'self'; object-src 'none'; form-action 'self'"
+          "value": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'"
         },
         {
           "key": "X-Permitted-Cross-Domain-Policies",
