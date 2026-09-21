@@ -612,36 +612,50 @@ function start(){
 
   var initTimer = setTimeout(function(){
     fail('การเชื่อมต่อใช้เวลานานผิดปกติ',
-         'ระบบไม่สามารถติดต่อ LINE ได้ในเวลาที่กำหนด กรุณากดปุ่มลองใหม่อีกครั้ง หรือปิดแล้วเปิดใหม่จากเมนูใน LINE',
-         'โหลดใหม่', function(){ location.reload(); });
-  }, 10000);
+         'ระบบไม่สามารถติดต่อ LINE ได้ในเวลาที่กำหนด กรุณากดปุ่มลองใหม่อีกครั้ง หรือเปิดใหม่จากเมนูใน LINE',
+         'ลองใหม่', function(){ location.reload(); });
+  }, 12000);
 
   liff.init({ liffId: C.LIFF_ID })
     .then(function(){
-      clearTimeout(initTimer);
       if (!liff.isLoggedIn()){
+        clearTimeout(initTimer);
         loginAgain();
         return;
       }
       st.idToken = liff.getIDToken();
-      if (!st.idToken)
+      if (!st.idToken){
+        clearTimeout(initTimer);
         return fail('ตั้งค่า LIFF ยังไม่ครบ',
           'หน้าจองยืนยันตัวตนไม่ได้เพราะ LIFF ยังไม่ได้เปิดสิทธิ์ openid ' +
           'กรุณาแจ้งผู้ดูแลระบบให้ติ๊ก profile และ openid ในหน้า LINE Developers');
-      return liff.getProfile().then(function(p){
-        return Promise.all([
-          api({ action:'config' }).catch(function(){ $('offlinewarn').hidden = false; return null; }),
-          api({ action:'init' }).catch(function(e){
-            if (e.code === 'AUTH_EXPIRED'){ loginAgain(); throw e; }
-            return { patient: null };
-          })
-        ]).then(function(r){ applyConfig(r[0]); applyProfile(p, r[1] && r[1].patient); });
-      });
+      }
+      return liff.getProfile()
+        .then(function(p){
+          return Promise.all([
+            api({ action:'config' }).catch(function(){ $('offlinewarn').hidden = false; return null; }),
+            api({ action:'init' }).catch(function(e){
+              if (e.code === 'AUTH_EXPIRED'){ loginAgain(); throw e; }
+              return { patient: null };
+            })
+          ]).then(function(r){
+            clearTimeout(initTimer);
+            applyConfig(r[0]);
+            applyProfile(p, r[1] && r[1].patient);
+          });
+        })
+        .catch(function(err){
+          clearTimeout(initTimer);
+          if (err && err.code === 'AUTH_EXPIRED') return;
+          fail('ดึงข้อมูลโปรไฟล์ไม่สำเร็จ', (err && err.message) || 'กรุณาลองใหม่อีกครั้ง',
+               'ลองใหม่', function(){ location.reload(); });
+        });
     })
     .catch(function(e){
       clearTimeout(initTimer);
       if (e && e.code === 'AUTH_EXPIRED') return;
-      fail('เชื่อมต่อ LINE ไม่สำเร็จ', (e && e.message) || 'กรุณาเปิดหน้านี้จากเมนูในแอป LINE');
+      fail('เชื่อมต่อ LINE ไม่สำเร็จ', (e && e.message) || 'กรุณาเปิดหน้านี้จากเมนูในแอป LINE',
+           'ลองใหม่', function(){ location.reload(); });
     });
 }
 start();
