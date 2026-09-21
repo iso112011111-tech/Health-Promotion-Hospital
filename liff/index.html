@@ -610,9 +610,19 @@ function start(){
   if (!C.LIFF_ID || !C.API_URL)
     return fail('ยังตั้งค่าไม่ครบ', 'กรุณาใส่ LIFF_ID และ API_URL ในไฟล์ config.js หรือตั้ง DEMO เป็น true');
 
+  var initTimer = setTimeout(function(){
+    fail('การเชื่อมต่อใช้เวลานานผิดปกติ',
+         'ระบบไม่สามารถติดต่อ LINE ได้ในเวลาที่กำหนด กรุณากดปุ่มลองใหม่อีกครั้ง หรือปิดแล้วเปิดใหม่จากเมนูใน LINE',
+         'โหลดใหม่', function(){ location.reload(); });
+  }, 10000);
+
   liff.init({ liffId: C.LIFF_ID })
     .then(function(){
-      if (!liff.isLoggedIn()){ loginAgain(); return new Promise(function(){}); }
+      clearTimeout(initTimer);
+      if (!liff.isLoggedIn()){
+        loginAgain();
+        return;
+      }
       st.idToken = liff.getIDToken();
       if (!st.idToken)
         return fail('ตั้งค่า LIFF ยังไม่ครบ',
@@ -629,6 +639,7 @@ function start(){
       });
     })
     .catch(function(e){
+      clearTimeout(initTimer);
       if (e && e.code === 'AUTH_EXPIRED') return;
       fail('เชื่อมต่อ LINE ไม่สำเร็จ', (e && e.message) || 'กรุณาเปิดหน้านี้จากเมนูในแอป LINE');
     });
