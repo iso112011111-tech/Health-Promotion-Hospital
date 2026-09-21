@@ -20,11 +20,17 @@ var VERSION = '2026-09-20.12';
 
 /* ============ ตารางบริการ — แก้ที่นี่ที่เดียว ============ */
 var DEPTS = {
-  md: {
-    name: 'พบแพทย์', tag: 'พ', blurb: 'ตรวจโรคทั่วไป ขอใบรับรองแพทย์', cap: 1,
-    days: [1, 2, 3, 4, 5], dayTxt: 'จันทร์–ศุกร์', breakAfter: 2,
+  gp: {
+    name: 'ตรวจโรคทั่วไป', tag: 'พ', blurb: 'พบแพทย์ตรวจโรคทั่วไป', cap: 1,
+    days: [1, 2, 3, 4, 5, 6], dayTxt: 'จันทร์–เสาร์', breakAfter: 2,
     slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '13:30–14:30', '14:30–15:30'],
-    services: ['ตรวจโรคทั่วไป', 'ขอใบรับรองแพทย์']
+    services: ['ตรวจโรคทั่วไป']
+  },
+  mc: {
+    name: 'ขอใบรับรองแพทย์', tag: 'ร', blurb: 'ขอใบรับรองแพทย์', cap: 1,
+    days: [2, 4], dayTxt: 'อังคาร · พฤหัสบดี', breakAfter: 2,
+    slots: ['09:00–10:00', '10:00–11:00', '11:00–12:00', '13:30–14:30', '14:30–15:30'],
+    services: ['ขอใบรับรองแพทย์']
   },
   tm: {
     name: 'แพทย์แผนไทย', tag: 'ท', blurb: 'นวด ประคบ พอก อบสมุนไพร', cap: 1,
@@ -784,7 +790,7 @@ function thDate_(s, full) {
 
 function pushTicket_(userId, b) {
   var dep = dept_(b.dept) || { name: b.dept },
-      acc = b.dept === 'dn' ? '#0B8B96' : (b.dept === 'md' ? '#1D70B8' : '#12A37A');
+      acc = b.dept === 'dn' ? '#0B8B96' : (b.dept === 'mc' ? '#0D9488' : '#10B981');
   function row(k, v) {
     return { type: 'box', layout: 'baseline', spacing: 'sm', contents: [
       { type: 'text', text: k, color: '#87A49A', size: 'sm', flex: 2 },

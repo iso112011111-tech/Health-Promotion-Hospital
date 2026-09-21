@@ -115,7 +115,7 @@ t('ทุกแผนกมีรายการบริการ', Object.keys
 const cfg = ctx.a_config();
 t('a_config ไม่มี token หรือรหัสผ่านหลุด', /token|secret|STAFF_KEY/i.test(JSON.stringify(cfg)), false);
 t('a_config ไม่มีข้อมูลคนไข้', /idCard|userId|tel/.test(JSON.stringify(cfg)), false);
-t('a_config มีครบ 3 แผนก', Object.keys(cfg.depts).sort(), ['dn', 'md', 'tm']);
+t('a_config มีครบ 4 แผนก', Object.keys(cfg.depts).sort(), ['dn', 'gp', 'mc', 'tm']);
 
 grp('[10] เพดานคิวต่อช่วงเวลา');
 t('ค่าเริ่มต้นของระบบ = 1 คิวต่อช่วง', ctx.CAP_PER_SLOT, 1);
