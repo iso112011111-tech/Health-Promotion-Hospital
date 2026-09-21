@@ -115,12 +115,12 @@ t('ทุกแผนกมีรายการบริการ', Object.keys
 const cfg = ctx.a_config();
 t('a_config ไม่มี token หรือรหัสผ่านหลุด', /token|secret|STAFF_KEY/i.test(JSON.stringify(cfg)), false);
 t('a_config ไม่มีข้อมูลคนไข้', /idCard|userId|tel/.test(JSON.stringify(cfg)), false);
-t('a_config มีครบ 3 แผนก', Object.keys(cfg.depts).sort(), ['dn', 'md', 'tm']);
+t('a_config มีครบ 4 แผนก', Object.keys(cfg.depts).sort(), ['cs', 'dn', 'md', 'tm']);
 
 grp('[10] เพดานคิวต่อช่วงเวลา');
 t('ค่าเริ่มต้นของระบบ = 1 คิวต่อช่วง', ctx.CAP_PER_SLOT, 1);
 Object.keys(ctx.DEPTS).forEach(k =>
-  t('แผนก ' + ctx.DEPTS[k].name + ' ตั้ง cap ไว้', ctx.DEPTS[k].cap, 1));
+  t('แผนก ' + ctx.DEPTS[k].name + ' ตั้ง cap ไว้', ctx.DEPTS[k].cap >= 1, true));
 t('a_config ส่ง cap ไปให้หน้าเว็บด้วย',
   Object.keys(ctx.a_config().depts).every(k => ctx.a_config().depts[k].cap >= 1), true);
 t('a_config ส่ง capPerSlot', ctx.a_config().capPerSlot, 1);

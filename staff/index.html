@@ -398,7 +398,8 @@ function el(html){ var d = document.createElement('div'); d.innerHTML = html; re
 
 function qrow(r, opts){
   opts = opts || {};
-  var d = dep(r.dept) || { name: r.dept }, lab = LABEL[r.status] || ['-','mute'];
+  var d = dep(r.dept) || { name: r.dept },
+      lab = (r.dept === 'cs' && r.status === 'booked') ? ['รอตรวจสอบ','wait'] : (LABEL[r.status] || ['-','mute']);
   var e = el('<div class="qrow"></div>');
   e.setAttribute('data-dept', r.dept);
   if (opts.isNew) e.classList.add('isnew');
@@ -413,7 +414,7 @@ function qrow(r, opts){
       '<small>' + esc(d.name) + ' · ' + esc(r.service) + '</small>' +
       '<small>' + esc(r.tel || '') + (r.right ? ' · ' + esc(r.right) : '') +
         (opts.showDate ? ' · ' + esc(r.slot) + ' น.' : '') + '</small>' +
-      (r.note ? '<span class="memo">' + esc(r.note) + '</span>' : '') +
+      (r.note ? '<span class="memo">' + (r.dept === 'cs' ? '<b>ปัญหาที่ปรึกษา:</b> ' : '') + esc(r.note) + '</span>' : '') +
     '</span>';
   var who = e.querySelector('.who');
   if (opts.actions !== false){
@@ -435,8 +436,14 @@ function qrow(r, opts){
       acts.appendChild(b);
     }
     if (r.status === 'booked'){
-      add(r.calledAt ? 'เรียกซ้ำ' : 'เรียกคิว', 'call', !r.calledAt);
-      add('เช็คอิน', 'checkin'); add('ไม่มา', 'noshow');
+      if (r.dept === 'cs'){
+        add('อนุมัติ', 'done', true);
+        add(r.calledAt ? 'เรียกซ้ำ' : 'เรียกคิว', 'call');
+      } else {
+        add(r.calledAt ? 'เรียกซ้ำ' : 'เรียกคิว', 'call', !r.calledAt);
+        add('เช็คอิน', 'checkin');
+      }
+      add('ไม่มา', 'noshow');
     } else if (r.status === 'checkin'){
       add('เสร็จสิ้น', 'done', true); add('ไม่มา', 'noshow');
     } else if (r.status === 'done' || r.status === 'noshow'){

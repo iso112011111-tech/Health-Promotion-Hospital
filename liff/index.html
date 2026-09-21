@@ -82,11 +82,11 @@
     <div class="field" id="w-tel"><label for="f-tel">เบอร์โทรศัพท์ <i>*</i></label>
       <input id="f-tel" inputmode="tel" maxlength="12" autocomplete="tel" placeholder="08X-XXX-XXXX"><p class="err" hidden></p></div>
 
-    <div class="field"><label for="f-right">สิทธิการรักษา <i>*</i></label><select id="f-right"></select></div>
+    <div class="field" id="w-right"><label for="f-right">สิทธิการรักษา <i>*</i></label><select id="f-right"></select></div>
 
-    <div class="field"><label for="f-note">อาการ / รายละเอียดเพิ่มเติม</label>
+    <div class="field" id="w-note"><label id="lbl-note" for="f-note">อาการ / รายละเอียดเพิ่มเติม</label>
       <textarea id="f-note" rows="3" maxlength="300" placeholder="เช่น ปวดเข่าซ้ายมา 2 สัปดาห์"></textarea>
-      <p class="help">ช่วยให้เจ้าหน้าที่เตรียมการล่วงหน้าได้ (ไม่บังคับ)</p></div>
+      <p class="help" id="notehelp">ช่วยให้เจ้าหน้าที่เตรียมการล่วงหน้าได้ (ไม่บังคับ)</p><p class="err" hidden></p></div>
 
     <label class="consent" for="f-pdpa"><input type="checkbox" id="f-pdpa">
       <span>ยินยอมให้ <b id="orgname"></b> เก็บและใช้ข้อมูลส่วนบุคคลข้างต้น เพื่อการนัดหมายและการให้บริการทางการแพทย์ ตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</span></label>
@@ -128,7 +128,8 @@ var D = C.DEPTS;                    /* เซิร์ฟเวอร์เข�
 var ICON = {
   md:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3v5a4.5 4.5 0 0 0 9 0V3"/><path d="M9 12.5v3.5a4 4 0 0 0 8 0V11"/><circle cx="17" cy="10" r="2"/></svg>',
   tm:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20c0-8.5 6.2-14.5 16.5-15.5C21 15 14.5 20.5 4 20z"/><path d="M4.5 19.5c4-4.5 8-7.5 12.5-10"/></svg>',
-  dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.2C5 3.2 3.6 5 3.6 7.6c0 3.4 1 4.6 1.7 8 .5 2.6 1 5.2 2.3 5.2 1.2 0 1.5-2.2 1.9-4.4.3-1.6.6-2.4 1.5-2.4s1.2.8 1.5 2.4c.4 2.2.7 4.4 1.9 4.4 1.3 0 1.8-2.6 2.3-5.2.7-3.4 1.7-4.6 1.7-8 0-2.6-1.4-4.4-3.9-4.4-1.6 0-2.4.8-3.5.8s-1.9-.8-3.5-.8z"/></svg>'
+  dn:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 3.2C5 3.2 3.6 5 3.6 7.6c0 3.4 1 4.6 1.7 8 .5 2.6 1 5.2 2.3 5.2 1.2 0 1.5-2.2 1.9-4.4.3-1.6.6-2.4 1.5-2.4s1.2.8 1.5 2.4c.4 2.2.7 4.4 1.9 4.4 1.3 0 1.8-2.6 2.3-5.2.7-3.4 1.7-4.6 1.7-8 0-2.6-1.4-4.4-3.9-4.4-1.6 0-2.4.8-3.5.8s-1.9-.8-3.5-.8z"/></svg>',
+  cs:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>'
 };
 var $ = function (id) { return document.getElementById(id); };
 var has = function (o, k) { return Object.prototype.hasOwnProperty.call(o || {}, String(k)); };
@@ -263,7 +264,7 @@ function go(n){
   $('s'+n).hidden = false;
   if ($('f'+n)) $('f'+n).hidden = false;
   $('topbar').hidden = false;
-  $('topttl').firstChild.nodeValue = TITLES[n][0];
+  $('topttl').firstChild.nodeValue = (st.dept === 'cs' && n === 4) ? 'ปรึกษาปัญหาสุขภาพ' : TITLES[n][0];
   $('topsub').textContent = (n === 1 || n === 6) ? C.ORG : ((dep(st.dept) && dep(st.dept).name) || C.ORG);
   $('back').hidden = (n === 1 || n === 5);
   $('s'+n).scrollTop = 0;
@@ -272,6 +273,7 @@ function go(n){
 }
 $('back').onclick = function(){
   if (st.step === 6) return go(1);
+  if (st.dept === 'cs' && st.step === 4) return go(1);
   if (st.step > 1) go(st.step - 1);
 };
 
@@ -289,7 +291,16 @@ function renderDepts(){
     b.onclick = function(){
       st.dept = k; st.svc = null; st.date = null; st.slot = null;
       st.counts = {}; st.closed = {}; st.countsLoaded = false;
-      app.setAttribute('data-dept', k); renderSvc(); go(2);
+      app.setAttribute('data-dept', k);
+      if (d.directForm){
+        st.svc = (d.services && d.services[0]) || d.name;
+        st.date = bkkNow().date;
+        st.slot = (d.slots && d.slots[0]) || 'รับคำปรึกษาออนไลน์';
+        renderForm();
+        go(4);
+        return;
+      }
+      renderSvc(); go(2);
     };
     g.appendChild(b);
   });
@@ -419,15 +430,35 @@ function rightOptions(selected){
 }
 function renderForm(){
   var d = D[st.dept];
-  $('sum').innerHTML =
-    '<div class="row"><span>แผนก</span><b class="v1"></b></div>' +
-    '<div class="row"><span>บริการ</span><b class="v2"></b></div>' +
-    '<div class="row"><span>วันที่</span><b class="v3"></b></div>' +
-    '<div class="row"><span>เวลา</span><b class="v4"></b></div>';
-  $('sum').querySelector('.v1').textContent = d.name;
-  $('sum').querySelector('.v2').textContent = st.svc;
-  $('sum').querySelector('.v3').textContent = thDate(st.date, true);
-  $('sum').querySelector('.v4').textContent = st.slot + ' น.';
+  if (st.dept === 'cs'){
+    $('sum').innerHTML =
+      '<div class="row"><span>หมวดหมู่</span><b class="v1"></b></div>' +
+      '<div class="row"><span>บริการ</span><b class="v2"></b></div>' +
+      '<div class="row"><span>รูปแบบ</span><b class="v3"></b></div>';
+    $('sum').querySelector('.v1').textContent = d.name;
+    $('sum').querySelector('.v2').textContent = st.svc;
+    $('sum').querySelector('.v3').textContent = 'ออนไลน์ · เจ้าหน้าที่ตรวจสอบและติดต่อกลับ';
+    if ($('lbl-note')) $('lbl-note').innerHTML = 'ปัญหาที่ต้องการปรึกษา <i>*</i>';
+    if ($('f-note')) $('f-note').placeholder = 'ระบุปัญหาสุขภาพหรือข้อสงสัยที่ต้องการปรึกษาเจ้าหน้าที่...';
+    if ($('notehelp')) $('notehelp').textContent = 'กรุณาระบุรายละเอียดเพื่อให้เจ้าหน้าที่ตรวจสอบและให้คำปรึกษา';
+    if ($('w-right')) $('w-right').hidden = true;
+    if ($('btn4')) $('btn4').textContent = 'ส่งข้อมูลปรึกษาสุขภาพ';
+  } else {
+    $('sum').innerHTML =
+      '<div class="row"><span>แผนก</span><b class="v1"></b></div>' +
+      '<div class="row"><span>บริการ</span><b class="v2"></b></div>' +
+      '<div class="row"><span>วันที่</span><b class="v3"></b></div>' +
+      '<div class="row"><span>เวลา</span><b class="v4"></b></div>';
+    $('sum').querySelector('.v1').textContent = d.name;
+    $('sum').querySelector('.v2').textContent = st.svc;
+    $('sum').querySelector('.v3').textContent = thDate(st.date, true);
+    $('sum').querySelector('.v4').textContent = st.slot + ' น.';
+    if ($('lbl-note')) $('lbl-note').innerHTML = 'อาการ / รายละเอียดเพิ่มเติม';
+    if ($('f-note')) $('f-note').placeholder = 'เช่น ปวดเข่าซ้ายมา 2 สัปดาห์';
+    if ($('notehelp')) $('notehelp').textContent = 'ช่วยให้เจ้าหน้าที่เตรียมการล่วงหน้าได้ (ไม่บังคับ)';
+    if ($('w-right')) $('w-right').hidden = false;
+    if ($('btn4')) $('btn4').textContent = 'ยืนยันการจองคิว';
+  }
   $('orgname').textContent = C.ORG;
 }
 $('f-id').addEventListener('input', function(){ this.value = fmtId(this.value); });
@@ -437,12 +468,18 @@ function syncBtn4(){ $('formerr').hidden = true; }
 $('btn4').onclick = function(){
   $('formerr').hidden = true;          /* ล้างข้อความจากครั้งก่อน ไม่งั้นดูเหมือนกดแล้วไม่มีอะไรเกิดขึ้น */
   var name = $('f-name').value.trim(), id = $('f-id').value, tel = $('f-tel').value;
+  var note = $('f-note').value.trim();
   var hasSaved = !!(st.patient && st.patient.hasIdCard);
   var ok = true;
   ok = fieldErr('w-name', name.length >= 3 ? '' : 'กรุณากรอกชื่อ–นามสกุล') && ok;
   if (digits(id).length === 0 && hasSaved) fieldErr('w-id', '');
   else ok = fieldErr('w-id', validThaiId(id) ? '' : 'เลขบัตรประชาชนไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง') && ok;
   ok = fieldErr('w-tel', digits(tel).length >= 9 ? '' : 'กรุณากรอกเบอร์โทรศัพท์ 9–10 หลัก') && ok;
+  if (st.dept === 'cs'){
+    ok = fieldErr('w-note', note.length >= 3 ? '' : 'กรุณาระบุปัญหาที่ต้องการปรึกษา') && ok;
+  } else {
+    fieldErr('w-note', '');
+  }
   if (!$('f-pdpa').checked){
     ok = false;
     $('formerr').textContent = 'กรุณาติดยินยอมให้เก็บข้อมูลส่วนบุคคลก่อนยืนยันการจอง';
@@ -461,7 +498,7 @@ $('btn4').onclick = function(){
   var btn = this; btn.disabled = true; btn.textContent = 'กำลังบันทึก…';
   api({ action:'book', dept: st.dept, service: st.svc, date: st.date, slot: st.slot,
         name: name, idCard: digits(id), tel: digits(tel), right: $('f-right').value,
-        note: $('f-note').value.trim(), consent: true })
+        note: note, consent: true })
   .then(function(j){
     clearDraft();
     st.patient = st.patient || {};
@@ -483,14 +520,18 @@ $('btn4').onclick = function(){
     $('formerr').hidden = false;
     $('formerr').scrollIntoView({ block:'center' });
   })
-  .then(function(){ btn.disabled = false; btn.textContent = 'ยืนยันการจองคิว'; });
+  .then(function(){
+    btn.disabled = false;
+    btn.textContent = (st.dept === 'cs') ? 'ส่งข้อมูลปรึกษาสุขภาพ' : 'ยืนยันการจองคิว';
+  });
 };
 
 /* ---------- 5 · บัตรคิว ---------- */
 function renderTicket(){
   var d = D[st.dept], L = st.last;
-  $('donesub').textContent = L.pushed ? 'ส่งบัตรคิวเข้าแชท LINE ของคุณแล้ว'
-                                      : 'บันทึกคิวเรียบร้อยแล้ว';
+  $('donesub').textContent = (st.dept === 'cs')
+    ? (L.pushed ? 'ส่งรายละเอียดคำปรึกษาเข้าแชท LINE ของคุณแล้ว' : 'ส่งข้อมูลปรึกษาสุขภาพเรียบร้อยแล้ว เจ้าหน้าที่จะตรวจสอบข้อมูล')
+    : (L.pushed ? 'ส่งบัตรคิวเข้าแชท LINE ของคุณแล้ว' : 'บันทึกคิวเรียบร้อยแล้ว');
   $('pushwarn').hidden = L.pushed;
   $('ticket').innerHTML =
     '<div class="head"><small>บัตรคิวออนไลน์</small><b class="t1"></b></div>' +

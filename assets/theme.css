@@ -6,6 +6,7 @@
   --tm:#12a37a; --tmsoft:#d9f2e8;
   --dn:#0b8b96; --dnsoft:#d5eef0;
   --md:#10b981; --mdsoft:#d1fae5;
+  --cs:#14b8a6; --cssoft:#ccfbf1;
   --warn:#a5812b; --warnsoft:#f6eed8;
   --mute-bg:#e6ece9; --mute-ink:#94a8a1;
   --crit:#b3574a; --critsoft:#f7e6e2;
@@ -48,6 +49,7 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 [data-dept="tm"]{--acc:var(--tm);--accsoft:var(--tmsoft)}
 [data-dept="dn"]{--acc:var(--dn);--accsoft:var(--dnsoft)}
 [data-dept="md"]{--acc:var(--md);--accsoft:var(--mdsoft)}
+[data-dept="cs"]{--acc:var(--cs);--accsoft:var(--cssoft)}
 
 /* โครงหน้าจอเต็มจอ */
 .app{height:100%;display:flex;flex-direction:column;background:var(--card);
