@@ -88,7 +88,7 @@
     <div class="field" id="w-tel"><label for="f-tel">เบอร์โทรศัพท์ <i>*</i></label>
       <input id="f-tel" inputmode="tel" maxlength="12" autocomplete="tel" placeholder="08X-XXX-XXXX"><p class="err" hidden></p></div>
 
-    <div class="field" id="w-right"><label for="f-right">สิทธิการรักษา <i>*</i></label><select id="f-right"></select></div>
+    <div class="field" id="w-right"><label for="f-right">สิทธิการรักษา <i>*</i></label><select id="f-right"></select><p class="help" id="righthelp" hidden></p></div>
 
     <div class="field" id="w-note"><label id="lbl-note" for="f-note">อาการ / รายละเอียดเพิ่มเติม</label>
       <textarea id="f-note" rows="3" maxlength="300" placeholder="เช่น ปวดเข่าซ้ายมา 2 สัปดาห์"></textarea>
@@ -464,6 +464,14 @@ function renderForm(){
     if ($('f-note')) $('f-note').placeholder = 'เช่น ปวดเข่าซ้ายมา 2 สัปดาห์';
     if ($('notehelp')) $('notehelp').textContent = 'ช่วยให้เจ้าหน้าที่เตรียมการล่วงหน้าได้ (ไม่บังคับ)';
     if ($('w-right')) $('w-right').hidden = false;
+    if ($('righthelp')){
+      if (st.dept === 'tm'){
+        $('righthelp').textContent = 'ค่าบริการแพทย์แผนไทย: นวด/ประคบ/ครอบแก้ว 250 บาท · อบสมุนไพร 100 บาท (ชำระเงินนำใบเสร็จเบิกต้นสังกัด)';
+        $('righthelp').hidden = false;
+      } else {
+        $('righthelp').hidden = true;
+      }
+    }
     if ($('btn4')) $('btn4').textContent = 'ยืนยันการจองคิว';
   }
   $('orgname').textContent = C.ORG;
