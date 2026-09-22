@@ -91,8 +91,9 @@ button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
 .deptcard:active{transform:scale(.985)}
 .deptcard:hover{border-color:var(--acc);background:var(--card2)}
 .deptcard .ic{width:48px;height:48px;border-radius:14px;background:var(--accsoft);color:var(--acc);
-  display:grid;place-items:center;flex:0 0 auto}
+  display:grid;place-items:center;flex:0 0 auto;overflow:hidden}
 .deptcard .ic svg{width:26px;height:26px}
+.deptcard .ic img{width:100%;height:100%;object-fit:cover;display:block}
 .deptcard b{display:block;font-size:16px;font-weight:600;line-height:1.3}
 .deptcard small{color:var(--ink3);font-size:12px;display:block}
 .deptcard .go{margin-left:auto;color:var(--ink3);font-size:20px}
